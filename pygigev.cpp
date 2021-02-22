@@ -12,7 +12,7 @@
             "/usr/dalsa/GigeV/include/", 
             "/home/adam-linux/.local/lib/python2.7/site-packages/numpy/core/include"
         ], 
-        "language": "c", 
+        "language": "c++", 
         "libraries": [
             "GevApi"
         ], 
@@ -309,19 +309,33 @@ END: Cython Metadata */
   #endif
 #endif
 
+#ifndef __cplusplus
+  #error "Cython files generated with the C++ option must be compiled with a C++ compiler."
+#endif
 #ifndef CYTHON_INLINE
   #if defined(__clang__)
     #define CYTHON_INLINE __inline__ __attribute__ ((__unused__))
-  #elif defined(__GNUC__)
-    #define CYTHON_INLINE __inline__
-  #elif defined(_MSC_VER)
-    #define CYTHON_INLINE __inline
-  #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-    #define CYTHON_INLINE inline
   #else
-    #define CYTHON_INLINE
+    #define CYTHON_INLINE inline
   #endif
 #endif
+template<typename T>
+void __Pyx_call_destructor(T& x) {
+    x.~T();
+}
+template<typename T>
+class __Pyx_FakeReference {
+  public:
+    __Pyx_FakeReference() : ptr(NULL) { }
+    __Pyx_FakeReference(const T& ref) : ptr(const_cast<T*>(&ref)) { }
+    T *operator->() { return ptr; }
+    T *operator&() { return ptr; }
+    operator T&() { return *ptr; }
+    template<typename U> bool operator ==(U other) { return *ptr == other; }
+    template<typename U> bool operator !=(U other) { return *ptr != other; }
+  private:
+    T *ptr;
+};
 
 #if CYTHON_COMPILING_IN_PYPY && PY_VERSION_HEX < 0x02070600 && !defined(Py_OptimizeFlag)
   #define Py_OptimizeFlag 0
@@ -635,6 +649,11 @@ static CYTHON_INLINE float __PYX_NAN() {
 #include "numpy/arrayobject.h"
 #include "numpy/ufuncobject.h"
 #include <stdlib.h>
+#include "ios"
+#include "new"
+#include "stdexcept"
+#include "typeinfo"
+#include <string>
 #include "gevapi.h"
 #include "pythread.h"
 #include "pystate.h"
@@ -1444,7 +1463,7 @@ struct __pyx_t_4decl_GEV_CAMERA_OPTIONS {
   __pyx_t_4decl_UINT32 msgChannel_timeout_ms;
 };
 
-/* "pygigev.pyx":9
+/* "pygigev.pyx":10
  * cimport decl
  * 
  * cdef class PyGigEV:             # <<<<<<<<<<<<<<
@@ -1896,6 +1915,42 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
 #define __Pyx_ErrFetch(type, value, tb)  PyErr_Fetch(type, value, tb)
 #endif
 
+/* ArgTypeTest.proto */
+#define __Pyx_ArgTypeTest(obj, type, none_allowed, name, exact)\
+    ((likely((Py_TYPE(obj) == type) | (none_allowed && (obj == Py_None)))) ? 1 :\
+        __Pyx__ArgTypeTest(obj, type, name, exact))
+static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact);
+
+/* decode_c_string_utf16.proto */
+static CYTHON_INLINE PyObject *__Pyx_PyUnicode_DecodeUTF16(const char *s, Py_ssize_t size, const char *errors) {
+    int byteorder = 0;
+    return PyUnicode_DecodeUTF16(s, size, errors, &byteorder);
+}
+static CYTHON_INLINE PyObject *__Pyx_PyUnicode_DecodeUTF16LE(const char *s, Py_ssize_t size, const char *errors) {
+    int byteorder = -1;
+    return PyUnicode_DecodeUTF16(s, size, errors, &byteorder);
+}
+static CYTHON_INLINE PyObject *__Pyx_PyUnicode_DecodeUTF16BE(const char *s, Py_ssize_t size, const char *errors) {
+    int byteorder = 1;
+    return PyUnicode_DecodeUTF16(s, size, errors, &byteorder);
+}
+
+/* decode_c_bytes.proto */
+static CYTHON_INLINE PyObject* __Pyx_decode_c_bytes(
+         const char* cstring, Py_ssize_t length, Py_ssize_t start, Py_ssize_t stop,
+         const char* encoding, const char* errors,
+         PyObject* (*decode_func)(const char *s, Py_ssize_t size, const char *errors));
+
+/* decode_bytes.proto */
+static CYTHON_INLINE PyObject* __Pyx_decode_bytes(
+         PyObject* string, Py_ssize_t start, Py_ssize_t stop,
+         const char* encoding, const char* errors,
+         PyObject* (*decode_func)(const char *s, Py_ssize_t size, const char *errors)) {
+    return __Pyx_decode_c_bytes(
+        PyBytes_AS_STRING(string), PyBytes_GET_SIZE(string),
+        start, stop, encoding, errors, decode_func);
+}
+
 /* RaiseException.proto */
 static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb, PyObject *cause);
 
@@ -1926,12 +1981,6 @@ static int __Pyx__GetException(PyThreadState *tstate, PyObject **type, PyObject 
 #else
 static int __Pyx_GetException(PyObject **type, PyObject **value, PyObject **tb);
 #endif
-
-/* ArgTypeTest.proto */
-#define __Pyx_ArgTypeTest(obj, type, none_allowed, name, exact)\
-    ((likely((Py_TYPE(obj) == type) | (none_allowed && (obj == Py_None)))) ? 1 :\
-        __Pyx__ArgTypeTest(obj, type, name, exact))
-static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact);
 
 /* IncludeStringH.proto */
 #include <string.h>
@@ -1967,20 +2016,6 @@ static CYTHON_INLINE PyObject *__Pyx_PyObject_GetItem(PyObject *obj, PyObject* k
 #else
 #define __Pyx_PyObject_GetItem(obj, key)  PyObject_GetItem(obj, key)
 #endif
-
-/* decode_c_string_utf16.proto */
-static CYTHON_INLINE PyObject *__Pyx_PyUnicode_DecodeUTF16(const char *s, Py_ssize_t size, const char *errors) {
-    int byteorder = 0;
-    return PyUnicode_DecodeUTF16(s, size, errors, &byteorder);
-}
-static CYTHON_INLINE PyObject *__Pyx_PyUnicode_DecodeUTF16LE(const char *s, Py_ssize_t size, const char *errors) {
-    int byteorder = -1;
-    return PyUnicode_DecodeUTF16(s, size, errors, &byteorder);
-}
-static CYTHON_INLINE PyObject *__Pyx_PyUnicode_DecodeUTF16BE(const char *s, Py_ssize_t size, const char *errors) {
-    int byteorder = 1;
-    return PyUnicode_DecodeUTF16(s, size, errors, &byteorder);
-}
 
 /* decode_c_string.proto */
 static CYTHON_INLINE PyObject* __Pyx_decode_c_string(
@@ -2415,6 +2450,8 @@ static CYTHON_INLINE char *__pyx_f_5numpy__util_dtypestring(PyArray_Descr *, cha
 
 /* Module declarations from 'libc.stdlib' */
 
+/* Module declarations from 'libcpp.string' */
+
 /* Module declarations from 'decl' */
 
 /* Module declarations from 'pygigev' */
@@ -2432,6 +2469,7 @@ static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
 static __pyx_t_4decl_GEV_CAMERA_OPTIONS __pyx_convert__from_py___pyx_t_4decl_GEV_CAMERA_OPTIONS(PyObject *); /*proto*/
 static __pyx_t_4decl_GEVLIB_CONFIG_OPTIONS __pyx_convert__from_py___pyx_t_4decl_GEVLIB_CONFIG_OPTIONS(PyObject *); /*proto*/
+static std::string __pyx_convert_string_from_py_std__in_string(PyObject *); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static void *__pyx_align_pointer(void *, size_t); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -2511,7 +2549,6 @@ static const char __pyx_k_step[] = "step";
 static const char __pyx_k_stop[] = "stop";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_ASCII[] = "ASCII";
-static const char __pyx_k_c_str[] = "c_str";
 static const char __pyx_k_class[] = "__class__";
 static const char __pyx_k_dtype[] = "dtype";
 static const char __pyx_k_empty[] = "empty";
@@ -2748,7 +2785,6 @@ static PyObject *__pyx_n_s_bufferCyclingMode;
 static PyObject *__pyx_kp_s_buffer_object;
 static PyObject *__pyx_n_s_c;
 static PyObject *__pyx_n_u_c;
-static PyObject *__pyx_n_s_c_str;
 static PyObject *__pyx_n_s_cameraListIndex;
 static PyObject *__pyx_n_s_capabilities;
 static PyObject *__pyx_n_s_class;
@@ -3024,7 +3060,7 @@ static PyObject *__pyx_codeobj__58;
 static PyObject *__pyx_codeobj__65;
 /* Late includes */
 
-/* "pygigev.pyx":21
+/* "pygigev.pyx":22
  * 	cdef decl.UINT32 format
  * 
  * 	def __cinit__(self):             # <<<<<<<<<<<<<<
@@ -3053,7 +3089,7 @@ static int __pyx_pf_7pygigev_7PyGigEV___cinit__(struct __pyx_obj_7pygigev_PyGigE
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "pygigev.pyx":22
+  /* "pygigev.pyx":23
  * 
  * 	def __cinit__(self):
  * 		self.handle = NULL             # <<<<<<<<<<<<<<
@@ -3062,7 +3098,7 @@ static int __pyx_pf_7pygigev_7PyGigEV___cinit__(struct __pyx_obj_7pygigev_PyGigE
  */
   __pyx_v_self->handle = NULL;
 
-  /* "pygigev.pyx":23
+  /* "pygigev.pyx":24
  * 	def __cinit__(self):
  * 		self.handle = NULL
  * 		self.width = 0             # <<<<<<<<<<<<<<
@@ -3071,7 +3107,7 @@ static int __pyx_pf_7pygigev_7PyGigEV___cinit__(struct __pyx_obj_7pygigev_PyGigE
  */
   __pyx_v_self->width = 0;
 
-  /* "pygigev.pyx":24
+  /* "pygigev.pyx":25
  * 		self.handle = NULL
  * 		self.width = 0
  * 		self.height = 0             # <<<<<<<<<<<<<<
@@ -3080,7 +3116,7 @@ static int __pyx_pf_7pygigev_7PyGigEV___cinit__(struct __pyx_obj_7pygigev_PyGigE
  */
   __pyx_v_self->height = 0;
 
-  /* "pygigev.pyx":25
+  /* "pygigev.pyx":26
  * 		self.width = 0
  * 		self.height = 0
  * 		self.x_offset = 0             # <<<<<<<<<<<<<<
@@ -3089,7 +3125,7 @@ static int __pyx_pf_7pygigev_7PyGigEV___cinit__(struct __pyx_obj_7pygigev_PyGigE
  */
   __pyx_v_self->x_offset = 0;
 
-  /* "pygigev.pyx":26
+  /* "pygigev.pyx":27
  * 		self.height = 0
  * 		self.x_offset = 0
  * 		self.y_offset = 0             # <<<<<<<<<<<<<<
@@ -3098,7 +3134,7 @@ static int __pyx_pf_7pygigev_7PyGigEV___cinit__(struct __pyx_obj_7pygigev_PyGigE
  */
   __pyx_v_self->y_offset = 0;
 
-  /* "pygigev.pyx":27
+  /* "pygigev.pyx":28
  * 		self.x_offset = 0
  * 		self.y_offset = 0
  * 		self.format = 0             # <<<<<<<<<<<<<<
@@ -3107,7 +3143,7 @@ static int __pyx_pf_7pygigev_7PyGigEV___cinit__(struct __pyx_obj_7pygigev_PyGigE
  */
   __pyx_v_self->format = 0;
 
-  /* "pygigev.pyx":21
+  /* "pygigev.pyx":22
  * 	cdef decl.UINT32 format
  * 
  * 	def __cinit__(self):             # <<<<<<<<<<<<<<
@@ -3121,7 +3157,7 @@ static int __pyx_pf_7pygigev_7PyGigEV___cinit__(struct __pyx_obj_7pygigev_PyGigE
   return __pyx_r;
 }
 
-/* "pygigev.pyx":29
+/* "pygigev.pyx":30
  * 		self.format = 0
  * 
  * 	def __init__(self):             # <<<<<<<<<<<<<<
@@ -3156,14 +3192,14 @@ static int __pyx_pf_7pygigev_7PyGigEV_2__init__(struct __pyx_obj_7pygigev_PyGigE
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pygigev.pyx":30
+  /* "pygigev.pyx":31
  * 
  * 	def __init__(self):
  * 		self.GevGetCameraList()             # <<<<<<<<<<<<<<
  * 
  * 	def GevGetCameraList(self, int maxCameras=1000):
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GevGetCameraList); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 30, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GevGetCameraList); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 31, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_3 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -3177,12 +3213,12 @@ static int __pyx_pf_7pygigev_7PyGigEV_2__init__(struct __pyx_obj_7pygigev_PyGigE
   }
   __pyx_t_1 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 30, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 31, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "pygigev.pyx":29
+  /* "pygigev.pyx":30
  * 		self.format = 0
  * 
  * 	def __init__(self):             # <<<<<<<<<<<<<<
@@ -3204,7 +3240,7 @@ static int __pyx_pf_7pygigev_7PyGigEV_2__init__(struct __pyx_obj_7pygigev_PyGigE
   return __pyx_r;
 }
 
-/* "pygigev.pyx":32
+/* "pygigev.pyx":33
  * 		self.GevGetCameraList()
  * 
  * 	def GevGetCameraList(self, int maxCameras=1000):             # <<<<<<<<<<<<<<
@@ -3243,7 +3279,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_5GevGetCameraList(PyObject *__pyx_v_
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevGetCameraList") < 0)) __PYX_ERR(0, 32, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevGetCameraList") < 0)) __PYX_ERR(0, 33, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -3254,14 +3290,14 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_5GevGetCameraList(PyObject *__pyx_v_
       }
     }
     if (values[0]) {
-      __pyx_v_maxCameras = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_maxCameras == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 32, __pyx_L3_error)
+      __pyx_v_maxCameras = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_maxCameras == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 33, __pyx_L3_error)
     } else {
       __pyx_v_maxCameras = ((int)0x3E8);
     }
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GevGetCameraList", 0, 0, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 32, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GevGetCameraList", 0, 0, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 33, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GevGetCameraList", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -3288,7 +3324,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_4GevGetCameraList(struct __pyx_obj_7
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevGetCameraList", 0);
 
-  /* "pygigev.pyx":34
+  /* "pygigev.pyx":35
  * 	def GevGetCameraList(self, int maxCameras=1000):
  * 		cdef int numCameras
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -3297,7 +3333,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_4GevGetCameraList(struct __pyx_obj_7
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":35
+  /* "pygigev.pyx":36
  * 		cdef int numCameras
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetCameraList(&self.cameras, maxCameras, &numCameras)             # <<<<<<<<<<<<<<
@@ -3306,7 +3342,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_4GevGetCameraList(struct __pyx_obj_7
  */
   __pyx_v_exitcode = GevGetCameraList((&__pyx_v_self->cameras), __pyx_v_maxCameras, (&__pyx_v_numCameras));
 
-  /* "pygigev.pyx":36
+  /* "pygigev.pyx":37
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetCameraList(&self.cameras, maxCameras, &numCameras)
  * 		return (self.handleExitCode(exitcode), self.cameras, numCameras)             # <<<<<<<<<<<<<<
@@ -3314,9 +3350,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_4GevGetCameraList(struct __pyx_obj_7
  * 	def GevOpenCamera(self, int gevAccessMode=4, int cameraListIndex=0):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 36, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 36, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -3331,14 +3367,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_4GevGetCameraList(struct __pyx_obj_7
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 36, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __pyx_convert__to_py_GEV_CAMERA_INFO(__pyx_v_self->cameras); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 36, __pyx_L1_error)
+  __pyx_t_2 = __pyx_convert__to_py_GEV_CAMERA_INFO(__pyx_v_self->cameras); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_numCameras); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 36, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_numCameras); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 36, __pyx_L1_error)
+  __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_GIVEREF(__pyx_t_1);
   PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_1);
@@ -3353,7 +3389,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_4GevGetCameraList(struct __pyx_obj_7
   __pyx_t_4 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":32
+  /* "pygigev.pyx":33
  * 		self.GevGetCameraList()
  * 
  * 	def GevGetCameraList(self, int maxCameras=1000):             # <<<<<<<<<<<<<<
@@ -3375,7 +3411,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_4GevGetCameraList(struct __pyx_obj_7
   return __pyx_r;
 }
 
-/* "pygigev.pyx":38
+/* "pygigev.pyx":39
  * 		return (self.handleExitCode(exitcode), self.cameras, numCameras)
  * 
  * 	def GevOpenCamera(self, int gevAccessMode=4, int cameraListIndex=0):             # <<<<<<<<<<<<<<
@@ -3423,7 +3459,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_7GevOpenCamera(PyObject *__pyx_v_sel
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevOpenCamera") < 0)) __PYX_ERR(0, 38, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevOpenCamera") < 0)) __PYX_ERR(0, 39, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -3436,19 +3472,19 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_7GevOpenCamera(PyObject *__pyx_v_sel
       }
     }
     if (values[0]) {
-      __pyx_v_gevAccessMode = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_gevAccessMode == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 38, __pyx_L3_error)
+      __pyx_v_gevAccessMode = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_gevAccessMode == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 39, __pyx_L3_error)
     } else {
       __pyx_v_gevAccessMode = ((int)4);
     }
     if (values[1]) {
-      __pyx_v_cameraListIndex = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_cameraListIndex == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 38, __pyx_L3_error)
+      __pyx_v_cameraListIndex = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_cameraListIndex == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 39, __pyx_L3_error)
     } else {
       __pyx_v_cameraListIndex = ((int)0);
     }
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GevOpenCamera", 0, 0, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 38, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GevOpenCamera", 0, 0, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 39, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GevOpenCamera", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -3476,7 +3512,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_6GevOpenCamera(struct __pyx_obj_7pyg
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevOpenCamera", 0);
 
-  /* "pygigev.pyx":39
+  /* "pygigev.pyx":40
  * 
  * 	def GevOpenCamera(self, int gevAccessMode=4, int cameraListIndex=0):
  * 		cdef decl.GEV_CAMERA_INFO _device = self.cameras  # what happens with multiple cameras in list??             # <<<<<<<<<<<<<<
@@ -3486,7 +3522,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_6GevOpenCamera(struct __pyx_obj_7pyg
   __pyx_t_1 = __pyx_v_self->cameras;
   __pyx_v__device = __pyx_t_1;
 
-  /* "pygigev.pyx":40
+  /* "pygigev.pyx":41
  * 	def GevOpenCamera(self, int gevAccessMode=4, int cameraListIndex=0):
  * 		cdef decl.GEV_CAMERA_INFO _device = self.cameras  # what happens with multiple cameras in list??
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -3495,7 +3531,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_6GevOpenCamera(struct __pyx_obj_7pyg
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":41
+  /* "pygigev.pyx":42
  * 		cdef decl.GEV_CAMERA_INFO _device = self.cameras  # what happens with multiple cameras in list??
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevOpenCamera(&_device, <decl.GevAccessMode>gevAccessMode, &self.handle)             # <<<<<<<<<<<<<<
@@ -3504,7 +3540,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_6GevOpenCamera(struct __pyx_obj_7pyg
  */
   __pyx_v_exitcode = GevOpenCamera((&__pyx_v__device), ((__pyx_t_4decl_GevAccessMode)__pyx_v_gevAccessMode), (&__pyx_v_self->handle));
 
-  /* "pygigev.pyx":42
+  /* "pygigev.pyx":43
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevOpenCamera(&_device, <decl.GevAccessMode>gevAccessMode, &self.handle)
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -3512,9 +3548,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_6GevOpenCamera(struct __pyx_obj_7pyg
  * 	def GevCloseCamera(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 43, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 43, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __pyx_t_5 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
@@ -3529,14 +3565,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_6GevOpenCamera(struct __pyx_obj_7pyg
   __pyx_t_2 = (__pyx_t_5) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_5, __pyx_t_4) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4);
   __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 42, __pyx_L1_error)
+  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 43, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":38
+  /* "pygigev.pyx":39
  * 		return (self.handleExitCode(exitcode), self.cameras, numCameras)
  * 
  * 	def GevOpenCamera(self, int gevAccessMode=4, int cameraListIndex=0):             # <<<<<<<<<<<<<<
@@ -3558,7 +3594,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_6GevOpenCamera(struct __pyx_obj_7pyg
   return __pyx_r;
 }
 
-/* "pygigev.pyx":44
+/* "pygigev.pyx":45
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevCloseCamera(self):             # <<<<<<<<<<<<<<
@@ -3592,7 +3628,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_8GevCloseCamera(struct __pyx_obj_7py
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevCloseCamera", 0);
 
-  /* "pygigev.pyx":45
+  /* "pygigev.pyx":46
  * 
  * 	def GevCloseCamera(self):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -3601,7 +3637,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_8GevCloseCamera(struct __pyx_obj_7py
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":46
+  /* "pygigev.pyx":47
  * 	def GevCloseCamera(self):
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevCloseCamera(&self.handle)             # <<<<<<<<<<<<<<
@@ -3610,7 +3646,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_8GevCloseCamera(struct __pyx_obj_7py
  */
   __pyx_v_exitcode = GevCloseCamera((&__pyx_v_self->handle));
 
-  /* "pygigev.pyx":47
+  /* "pygigev.pyx":48
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevCloseCamera(&self.handle)
  * 		free(self.buffers_ptr)             # <<<<<<<<<<<<<<
@@ -3619,7 +3655,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_8GevCloseCamera(struct __pyx_obj_7py
  */
   free(__pyx_v_self->buffers_ptr);
 
-  /* "pygigev.pyx":48
+  /* "pygigev.pyx":49
  * 		exitcode = decl.GevCloseCamera(&self.handle)
  * 		free(self.buffers_ptr)
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -3627,9 +3663,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_8GevCloseCamera(struct __pyx_obj_7py
  * 	def GevGetCameraInterfaceOptions(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 48, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 49, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 48, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 49, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -3644,14 +3680,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_8GevCloseCamera(struct __pyx_obj_7py
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 48, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 49, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":44
+  /* "pygigev.pyx":45
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevCloseCamera(self):             # <<<<<<<<<<<<<<
@@ -3673,7 +3709,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_8GevCloseCamera(struct __pyx_obj_7py
   return __pyx_r;
 }
 
-/* "pygigev.pyx":50
+/* "pygigev.pyx":51
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevGetCameraInterfaceOptions(self):             # <<<<<<<<<<<<<<
@@ -3708,7 +3744,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_10GevGetCameraInterfaceOptions(struc
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevGetCameraInterfaceOptions", 0);
 
-  /* "pygigev.pyx":52
+  /* "pygigev.pyx":53
  * 	def GevGetCameraInterfaceOptions(self):
  * 		cdef decl.GEV_CAMERA_OPTIONS options
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -3717,7 +3753,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_10GevGetCameraInterfaceOptions(struc
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":53
+  /* "pygigev.pyx":54
  * 		cdef decl.GEV_CAMERA_OPTIONS options
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetCameraInterfaceOptions(self.handle, &options)             # <<<<<<<<<<<<<<
@@ -3726,7 +3762,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_10GevGetCameraInterfaceOptions(struc
  */
   __pyx_v_exitcode = GevGetCameraInterfaceOptions(__pyx_v_self->handle, (&__pyx_v_options));
 
-  /* "pygigev.pyx":54
+  /* "pygigev.pyx":55
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetCameraInterfaceOptions(self.handle, &options)
  * 		return (self.handleExitCode(exitcode), options)             # <<<<<<<<<<<<<<
@@ -3734,9 +3770,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_10GevGetCameraInterfaceOptions(struc
  * 	def GevSetCameraInterfaceOptions(self, options):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 55, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 55, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -3751,12 +3787,12 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_10GevGetCameraInterfaceOptions(struc
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 54, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __pyx_convert__to_py___pyx_t_4decl_GEV_CAMERA_OPTIONS(__pyx_v_options); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_2 = __pyx_convert__to_py___pyx_t_4decl_GEV_CAMERA_OPTIONS(__pyx_v_options); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 55, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 55, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_1);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1);
@@ -3768,7 +3804,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_10GevGetCameraInterfaceOptions(struc
   __pyx_t_3 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":50
+  /* "pygigev.pyx":51
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevGetCameraInterfaceOptions(self):             # <<<<<<<<<<<<<<
@@ -3790,7 +3826,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_10GevGetCameraInterfaceOptions(struc
   return __pyx_r;
 }
 
-/* "pygigev.pyx":56
+/* "pygigev.pyx":57
  * 		return (self.handleExitCode(exitcode), options)
  * 
  * 	def GevSetCameraInterfaceOptions(self, options):             # <<<<<<<<<<<<<<
@@ -3826,17 +3862,17 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_12GevSetCameraInterfaceOptions(struc
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevSetCameraInterfaceOptions", 0);
 
-  /* "pygigev.pyx":57
+  /* "pygigev.pyx":58
  * 
  * 	def GevSetCameraInterfaceOptions(self, options):
  * 		cdef decl.GEV_CAMERA_OPTIONS _options = options             # <<<<<<<<<<<<<<
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevSetCameraInterfaceOptions(self.handle, &_options)
  */
-  __pyx_t_1 = __pyx_convert__from_py___pyx_t_4decl_GEV_CAMERA_OPTIONS(__pyx_v_options); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 57, __pyx_L1_error)
+  __pyx_t_1 = __pyx_convert__from_py___pyx_t_4decl_GEV_CAMERA_OPTIONS(__pyx_v_options); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 58, __pyx_L1_error)
   __pyx_v__options = __pyx_t_1;
 
-  /* "pygigev.pyx":58
+  /* "pygigev.pyx":59
  * 	def GevSetCameraInterfaceOptions(self, options):
  * 		cdef decl.GEV_CAMERA_OPTIONS _options = options
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -3845,7 +3881,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_12GevSetCameraInterfaceOptions(struc
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":59
+  /* "pygigev.pyx":60
  * 		cdef decl.GEV_CAMERA_OPTIONS _options = options
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevSetCameraInterfaceOptions(self.handle, &_options)             # <<<<<<<<<<<<<<
@@ -3854,7 +3890,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_12GevSetCameraInterfaceOptions(struc
  */
   __pyx_v_exitcode = GevSetCameraInterfaceOptions(__pyx_v_self->handle, (&__pyx_v__options));
 
-  /* "pygigev.pyx":60
+  /* "pygigev.pyx":61
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevSetCameraInterfaceOptions(self.handle, &_options)
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -3862,9 +3898,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_12GevSetCameraInterfaceOptions(struc
  * 	def GevGetImageParameters(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 60, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 61, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 60, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 61, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __pyx_t_5 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
@@ -3879,14 +3915,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_12GevSetCameraInterfaceOptions(struc
   __pyx_t_2 = (__pyx_t_5) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_5, __pyx_t_4) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4);
   __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 60, __pyx_L1_error)
+  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 61, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":56
+  /* "pygigev.pyx":57
  * 		return (self.handleExitCode(exitcode), options)
  * 
  * 	def GevSetCameraInterfaceOptions(self, options):             # <<<<<<<<<<<<<<
@@ -3908,7 +3944,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_12GevSetCameraInterfaceOptions(struc
   return __pyx_r;
 }
 
-/* "pygigev.pyx":62
+/* "pygigev.pyx":63
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevGetImageParameters(self):             # <<<<<<<<<<<<<<
@@ -3942,7 +3978,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_14GevGetImageParameters(struct __pyx
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevGetImageParameters", 0);
 
-  /* "pygigev.pyx":63
+  /* "pygigev.pyx":64
  * 
  * 	def GevGetImageParameters(self):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -3951,7 +3987,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_14GevGetImageParameters(struct __pyx
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":64
+  /* "pygigev.pyx":65
  * 	def GevGetImageParameters(self):
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetImageParameters(self.handle, &self.width, &self.height, &self.x_offset, &self.y_offset, &self.format)             # <<<<<<<<<<<<<<
@@ -3960,7 +3996,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_14GevGetImageParameters(struct __pyx
  */
   __pyx_v_exitcode = GevGetImageParameters(__pyx_v_self->handle, (&__pyx_v_self->width), (&__pyx_v_self->height), (&__pyx_v_self->x_offset), (&__pyx_v_self->y_offset), (&__pyx_v_self->format));
 
-  /* "pygigev.pyx":65
+  /* "pygigev.pyx":66
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetImageParameters(self.handle, &self.width, &self.height, &self.x_offset, &self.y_offset, &self.format)
  * 		return {'code': exitcode, 'width': self.width, 'height': self.height, 'x_offset': self.x_offset, 'y_offset': self.y_offset, 'pixelFormat':(self.format, hex(self.format))}             # <<<<<<<<<<<<<<
@@ -3968,36 +4004,36 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_14GevGetImageParameters(struct __pyx
  * 	def GevSetImageParameters(self, decl.UINT32 width, decl.UINT32 height, decl.UINT32 x_offset, decl.UINT32 y_offset, decl.UINT32 format):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_code, __pyx_t_2) < 0) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_code, __pyx_t_2) < 0) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->width); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->width); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_width, __pyx_t_2) < 0) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_width, __pyx_t_2) < 0) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->height); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->height); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_height, __pyx_t_2) < 0) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_height, __pyx_t_2) < 0) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->x_offset); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->x_offset); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_x_offset, __pyx_t_2) < 0) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_x_offset, __pyx_t_2) < 0) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->y_offset); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->y_offset); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_y_offset, __pyx_t_2) < 0) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_y_offset, __pyx_t_2) < 0) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->format); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->format); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->format); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->format); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_builtin_hex, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_builtin_hex, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_2);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_2);
@@ -4005,13 +4041,13 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_14GevGetImageParameters(struct __pyx
   PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_t_4);
   __pyx_t_2 = 0;
   __pyx_t_4 = 0;
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_pixelFormat, __pyx_t_3) < 0) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_pixelFormat, __pyx_t_3) < 0) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":62
+  /* "pygigev.pyx":63
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevGetImageParameters(self):             # <<<<<<<<<<<<<<
@@ -4033,7 +4069,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_14GevGetImageParameters(struct __pyx
   return __pyx_r;
 }
 
-/* "pygigev.pyx":67
+/* "pygigev.pyx":68
  * 		return {'code': exitcode, 'width': self.width, 'height': self.height, 'x_offset': self.x_offset, 'y_offset': self.y_offset, 'pixelFormat':(self.format, hex(self.format))}
  * 
  * 	def GevSetImageParameters(self, decl.UINT32 width, decl.UINT32 height, decl.UINT32 x_offset, decl.UINT32 y_offset, decl.UINT32 format):             # <<<<<<<<<<<<<<
@@ -4084,29 +4120,29 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_17GevSetImageParameters(PyObject *__
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_height)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, 1); __PYX_ERR(0, 67, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, 1); __PYX_ERR(0, 68, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_x_offset)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, 2); __PYX_ERR(0, 67, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, 2); __PYX_ERR(0, 68, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_y_offset)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, 3); __PYX_ERR(0, 67, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, 3); __PYX_ERR(0, 68, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
         if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_format)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, 4); __PYX_ERR(0, 67, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, 4); __PYX_ERR(0, 68, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevSetImageParameters") < 0)) __PYX_ERR(0, 67, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevSetImageParameters") < 0)) __PYX_ERR(0, 68, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 5) {
       goto __pyx_L5_argtuple_error;
@@ -4117,15 +4153,15 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_17GevSetImageParameters(PyObject *__
       values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
       values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
     }
-    __pyx_v_width = __Pyx_PyInt_As_unsigned_long(values[0]); if (unlikely((__pyx_v_width == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L3_error)
-    __pyx_v_height = __Pyx_PyInt_As_unsigned_long(values[1]); if (unlikely((__pyx_v_height == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L3_error)
-    __pyx_v_x_offset = __Pyx_PyInt_As_unsigned_long(values[2]); if (unlikely((__pyx_v_x_offset == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L3_error)
-    __pyx_v_y_offset = __Pyx_PyInt_As_unsigned_long(values[3]); if (unlikely((__pyx_v_y_offset == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L3_error)
-    __pyx_v_format = __Pyx_PyInt_As_unsigned_long(values[4]); if (unlikely((__pyx_v_format == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L3_error)
+    __pyx_v_width = __Pyx_PyInt_As_unsigned_long(values[0]); if (unlikely((__pyx_v_width == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 68, __pyx_L3_error)
+    __pyx_v_height = __Pyx_PyInt_As_unsigned_long(values[1]); if (unlikely((__pyx_v_height == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 68, __pyx_L3_error)
+    __pyx_v_x_offset = __Pyx_PyInt_As_unsigned_long(values[2]); if (unlikely((__pyx_v_x_offset == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 68, __pyx_L3_error)
+    __pyx_v_y_offset = __Pyx_PyInt_As_unsigned_long(values[3]); if (unlikely((__pyx_v_y_offset == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 68, __pyx_L3_error)
+    __pyx_v_format = __Pyx_PyInt_As_unsigned_long(values[4]); if (unlikely((__pyx_v_format == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 68, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 67, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GevSetImageParameters", 1, 5, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 68, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GevSetImageParameters", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -4151,7 +4187,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_16GevSetImageParameters(struct __pyx
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevSetImageParameters", 0);
 
-  /* "pygigev.pyx":68
+  /* "pygigev.pyx":69
  * 
  * 	def GevSetImageParameters(self, decl.UINT32 width, decl.UINT32 height, decl.UINT32 x_offset, decl.UINT32 y_offset, decl.UINT32 format):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -4160,7 +4196,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_16GevSetImageParameters(struct __pyx
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":69
+  /* "pygigev.pyx":70
  * 	def GevSetImageParameters(self, decl.UINT32 width, decl.UINT32 height, decl.UINT32 x_offset, decl.UINT32 y_offset, decl.UINT32 format):
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevSetImageParameters(self.handle, width, height, x_offset, y_offset, format)             # <<<<<<<<<<<<<<
@@ -4169,7 +4205,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_16GevSetImageParameters(struct __pyx
  */
   __pyx_v_exitcode = GevSetImageParameters(__pyx_v_self->handle, __pyx_v_width, __pyx_v_height, __pyx_v_x_offset, __pyx_v_y_offset, __pyx_v_format);
 
-  /* "pygigev.pyx":70
+  /* "pygigev.pyx":71
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevSetImageParameters(self.handle, width, height, x_offset, y_offset, format)
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -4177,9 +4213,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_16GevSetImageParameters(struct __pyx
  * 	def GevInitImageTransfer(self, int bufferCyclingMode=1, int numImgBuffers=8):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 71, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 71, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -4194,14 +4230,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_16GevSetImageParameters(struct __pyx
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 70, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 71, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":67
+  /* "pygigev.pyx":68
  * 		return {'code': exitcode, 'width': self.width, 'height': self.height, 'x_offset': self.x_offset, 'y_offset': self.y_offset, 'pixelFormat':(self.format, hex(self.format))}
  * 
  * 	def GevSetImageParameters(self, decl.UINT32 width, decl.UINT32 height, decl.UINT32 x_offset, decl.UINT32 y_offset, decl.UINT32 format):             # <<<<<<<<<<<<<<
@@ -4223,7 +4259,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_16GevSetImageParameters(struct __pyx
   return __pyx_r;
 }
 
-/* "pygigev.pyx":72
+/* "pygigev.pyx":73
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevInitImageTransfer(self, int bufferCyclingMode=1, int numImgBuffers=8):             # <<<<<<<<<<<<<<
@@ -4271,7 +4307,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_19GevInitImageTransfer(PyObject *__p
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevInitImageTransfer") < 0)) __PYX_ERR(0, 72, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevInitImageTransfer") < 0)) __PYX_ERR(0, 73, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -4284,19 +4320,19 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_19GevInitImageTransfer(PyObject *__p
       }
     }
     if (values[0]) {
-      __pyx_v_bufferCyclingMode = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_bufferCyclingMode == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 72, __pyx_L3_error)
+      __pyx_v_bufferCyclingMode = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_bufferCyclingMode == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 73, __pyx_L3_error)
     } else {
       __pyx_v_bufferCyclingMode = ((int)1);
     }
     if (values[1]) {
-      __pyx_v_numImgBuffers = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_numImgBuffers == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 72, __pyx_L3_error)
+      __pyx_v_numImgBuffers = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_numImgBuffers == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 73, __pyx_L3_error)
     } else {
       __pyx_v_numImgBuffers = ((int)8);
     }
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GevInitImageTransfer", 0, 0, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 72, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GevInitImageTransfer", 0, 0, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 73, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GevInitImageTransfer", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -4338,7 +4374,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevInitImageTransfer", 0);
 
-  /* "pygigev.pyx":73
+  /* "pygigev.pyx":74
  * 
  * 	def GevInitImageTransfer(self, int bufferCyclingMode=1, int numImgBuffers=8):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -4347,14 +4383,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":74
+  /* "pygigev.pyx":75
  * 	def GevInitImageTransfer(self, int bufferCyclingMode=1, int numImgBuffers=8):
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		imgParams = self.GevGetImageParameters()             # <<<<<<<<<<<<<<
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \
  * 								imgParams['width'] * imgParams['height']
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GevGetImageParameters); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 74, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GevGetImageParameters); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_3 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -4368,24 +4404,24 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
   }
   __pyx_t_1 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 74, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_v_imgParams = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "pygigev.pyx":75
+  /* "pygigev.pyx":76
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		imgParams = self.GevGetImageParameters()
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \             # <<<<<<<<<<<<<<
  * 								imgParams['width'] * imgParams['height']
  * 
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GetPixelSizeInBytes); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 75, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GetPixelSizeInBytes); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 76, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_pixelFormat); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 75, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_pixelFormat); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 76, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_GetItemInt(__pyx_t_3, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 75, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_GetItemInt(__pyx_t_3, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 76, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_t_3 = NULL;
@@ -4401,68 +4437,68 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
   __pyx_t_1 = (__pyx_t_3) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_3, __pyx_t_4) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_4);
   __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 75, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 76, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pygigev.pyx":76
+  /* "pygigev.pyx":77
  * 		imgParams = self.GevGetImageParameters()
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \
  * 								imgParams['width'] * imgParams['height']             # <<<<<<<<<<<<<<
  * 
  * 		# create variable to hold a image buffer
  */
-  __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_width); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_width); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 77, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
 
-  /* "pygigev.pyx":75
+  /* "pygigev.pyx":76
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		imgParams = self.GevGetImageParameters()
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \             # <<<<<<<<<<<<<<
  * 								imgParams['width'] * imgParams['height']
  * 
  */
-  __pyx_t_4 = PyNumber_Multiply(__pyx_t_1, __pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 75, __pyx_L1_error)
+  __pyx_t_4 = PyNumber_Multiply(__pyx_t_1, __pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 76, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pygigev.pyx":76
+  /* "pygigev.pyx":77
  * 		imgParams = self.GevGetImageParameters()
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \
  * 								imgParams['width'] * imgParams['height']             # <<<<<<<<<<<<<<
  * 
  * 		# create variable to hold a image buffer
  */
-  __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_height); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_height); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 77, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = PyNumber_Multiply(__pyx_t_4, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_1 = PyNumber_Multiply(__pyx_t_4, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 77, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_5 = __Pyx_PyInt_As_unsigned_long(__pyx_t_1); if (unlikely((__pyx_t_5 == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyInt_As_unsigned_long(__pyx_t_1); if (unlikely((__pyx_t_5 == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 77, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_size = __pyx_t_5;
 
-  /* "pygigev.pyx":79
+  /* "pygigev.pyx":80
  * 
  * 		# create variable to hold a image buffer
  * 		self.buffers = np.empty(shape=[numImgBuffers,size], dtype=np.uint8, order="C")             # <<<<<<<<<<<<<<
  * 
  * 		# create helper array to get a pointers
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 79, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_empty); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 79, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_empty); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 79, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_numImgBuffers); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 79, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_numImgBuffers); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_3 = __Pyx_PyInt_From_unsigned_long(__pyx_v_size); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_unsigned_long(__pyx_v_size); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_6 = PyList_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 79, __pyx_L1_error)
+  __pyx_t_6 = PyList_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
   __Pyx_GIVEREF(__pyx_t_4);
   PyList_SET_ITEM(__pyx_t_6, 0, __pyx_t_4);
@@ -4470,28 +4506,28 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
   PyList_SET_ITEM(__pyx_t_6, 1, __pyx_t_3);
   __pyx_t_4 = 0;
   __pyx_t_3 = 0;
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_shape, __pyx_t_6) < 0) __PYX_ERR(0, 79, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_shape, __pyx_t_6) < 0) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 79, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_uint8); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_uint8); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, __pyx_t_3) < 0) __PYX_ERR(0, 79, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, __pyx_t_3) < 0) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_order, __pyx_n_s_C) < 0) __PYX_ERR(0, 79, __pyx_L1_error)
-  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_empty_tuple, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_order, __pyx_n_s_C) < 0) __PYX_ERR(0, 80, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_empty_tuple, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_7 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_nn___pyx_t_4decl_UINT8(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_7.memview)) __PYX_ERR(0, 79, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_nn___pyx_t_4decl_UINT8(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_7.memview)) __PYX_ERR(0, 80, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __PYX_XDEC_MEMVIEW(&__pyx_v_self->buffers, 0);
   __pyx_v_self->buffers = __pyx_t_7;
   __pyx_t_7.memview = NULL;
   __pyx_t_7.data = NULL;
 
-  /* "pygigev.pyx":82
+  /* "pygigev.pyx":83
  * 
  * 		# create helper array to get a pointers
  * 		self.buffers_ptr = <decl.UINT8**>malloc(numImgBuffers * sizeof(decl.UINT8*))             # <<<<<<<<<<<<<<
@@ -4500,7 +4536,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
  */
   __pyx_v_self->buffers_ptr = ((__pyx_t_4decl_UINT8 **)malloc((__pyx_v_numImgBuffers * (sizeof(__pyx_t_4decl_UINT8 *)))));
 
-  /* "pygigev.pyx":85
+  /* "pygigev.pyx":86
  * 
  * 		# loop through buffer elements to addresses to store in helper array
  * 		if not self.buffers_ptr: raise MemoryError             # <<<<<<<<<<<<<<
@@ -4509,10 +4545,10 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
  */
   __pyx_t_8 = ((!(__pyx_v_self->buffers_ptr != 0)) != 0);
   if (unlikely(__pyx_t_8)) {
-    PyErr_NoMemory(); __PYX_ERR(0, 85, __pyx_L1_error)
+    PyErr_NoMemory(); __PYX_ERR(0, 86, __pyx_L1_error)
   }
 
-  /* "pygigev.pyx":86
+  /* "pygigev.pyx":87
  * 		# loop through buffer elements to addresses to store in helper array
  * 		if not self.buffers_ptr: raise MemoryError
  * 		try:             # <<<<<<<<<<<<<<
@@ -4528,7 +4564,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
     __Pyx_XGOTREF(__pyx_t_11);
     /*try:*/ {
 
-      /* "pygigev.pyx":87
+      /* "pygigev.pyx":88
  * 		if not self.buffers_ptr: raise MemoryError
  * 		try:
  * 			for i in range(numImgBuffers):             # <<<<<<<<<<<<<<
@@ -4540,14 +4576,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
       for (__pyx_t_14 = 0; __pyx_t_14 < __pyx_t_13; __pyx_t_14+=1) {
         __pyx_v_i = __pyx_t_14;
 
-        /* "pygigev.pyx":88
+        /* "pygigev.pyx":89
  * 		try:
  * 			for i in range(numImgBuffers):
  * 				self.buffers_ptr[i] = &self.buffers[i,0]             # <<<<<<<<<<<<<<
  * 
  * 			exitcode = decl.GevInitImageTransfer(self.handle, <decl.GevBufferCyclingMode>bufferCyclingMode, numImgBuffers, &self.buffers_ptr[0])
  */
-        if (unlikely(!__pyx_v_self->buffers.memview)) {PyErr_SetString(PyExc_AttributeError,"Memoryview is not initialized");__PYX_ERR(0, 88, __pyx_L4_error)}
+        if (unlikely(!__pyx_v_self->buffers.memview)) {PyErr_SetString(PyExc_AttributeError,"Memoryview is not initialized");__PYX_ERR(0, 89, __pyx_L4_error)}
         __pyx_t_15 = __pyx_v_i;
         __pyx_t_16 = 0;
         __pyx_t_17 = -1;
@@ -4561,12 +4597,12 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
         } else if (unlikely(__pyx_t_16 >= __pyx_v_self->buffers.shape[1])) __pyx_t_17 = 1;
         if (unlikely(__pyx_t_17 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_17);
-          __PYX_ERR(0, 88, __pyx_L4_error)
+          __PYX_ERR(0, 89, __pyx_L4_error)
         }
         (__pyx_v_self->buffers_ptr[__pyx_v_i]) = (&(*((__pyx_t_4decl_UINT8 *) ( /* dim=1 */ ((char *) (((__pyx_t_4decl_UINT8 *) ( /* dim=0 */ (__pyx_v_self->buffers.data + __pyx_t_15 * __pyx_v_self->buffers.strides[0]) )) + __pyx_t_16)) ))));
       }
 
-      /* "pygigev.pyx":90
+      /* "pygigev.pyx":91
  * 				self.buffers_ptr[i] = &self.buffers[i,0]
  * 
  * 			exitcode = decl.GevInitImageTransfer(self.handle, <decl.GevBufferCyclingMode>bufferCyclingMode, numImgBuffers, &self.buffers_ptr[0])             # <<<<<<<<<<<<<<
@@ -4575,7 +4611,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
  */
       __pyx_v_exitcode = GevInitImageTransfer(__pyx_v_self->handle, ((__pyx_t_4decl_GevBufferCyclingMode)__pyx_v_bufferCyclingMode), __pyx_v_numImgBuffers, (&(__pyx_v_self->buffers_ptr[0])));
 
-      /* "pygigev.pyx":86
+      /* "pygigev.pyx":87
  * 		# loop through buffer elements to addresses to store in helper array
  * 		if not self.buffers_ptr: raise MemoryError
  * 		try:             # <<<<<<<<<<<<<<
@@ -4595,7 +4631,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
     __PYX_XDEC_MEMVIEW(&__pyx_t_7, 1);
 
-    /* "pygigev.pyx":91
+    /* "pygigev.pyx":92
  * 
  * 			exitcode = decl.GevInitImageTransfer(self.handle, <decl.GevBufferCyclingMode>bufferCyclingMode, numImgBuffers, &self.buffers_ptr[0])
  * 		except:             # <<<<<<<<<<<<<<
@@ -4614,7 +4650,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
     __pyx_L9_try_end:;
   }
 
-  /* "pygigev.pyx":96
+  /* "pygigev.pyx":97
  * 			#free(buffers_ptr)
  * 
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -4622,9 +4658,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
  * 	def GevInitializeImageTransfer(self, int numImgBuffers=8):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 96, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 97, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 96, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 97, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_6 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_1))) {
@@ -4639,14 +4675,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
   __pyx_t_3 = (__pyx_t_6) ? __Pyx_PyObject_Call2Args(__pyx_t_1, __pyx_t_6, __pyx_t_2) : __Pyx_PyObject_CallOneArg(__pyx_t_1, __pyx_t_2);
   __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 96, __pyx_L1_error)
+  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 97, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_r = __pyx_t_3;
   __pyx_t_3 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":72
+  /* "pygigev.pyx":73
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevInitImageTransfer(self, int bufferCyclingMode=1, int numImgBuffers=8):             # <<<<<<<<<<<<<<
@@ -4671,7 +4707,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_18GevInitImageTransfer(struct __pyx_
   return __pyx_r;
 }
 
-/* "pygigev.pyx":98
+/* "pygigev.pyx":99
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevInitializeImageTransfer(self, int numImgBuffers=8):             # <<<<<<<<<<<<<<
@@ -4710,7 +4746,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_21GevInitializeImageTransfer(PyObjec
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevInitializeImageTransfer") < 0)) __PYX_ERR(0, 98, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevInitializeImageTransfer") < 0)) __PYX_ERR(0, 99, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -4721,14 +4757,14 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_21GevInitializeImageTransfer(PyObjec
       }
     }
     if (values[0]) {
-      __pyx_v_numImgBuffers = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_numImgBuffers == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 98, __pyx_L3_error)
+      __pyx_v_numImgBuffers = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_numImgBuffers == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 99, __pyx_L3_error)
     } else {
       __pyx_v_numImgBuffers = ((int)8);
     }
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GevInitializeImageTransfer", 0, 0, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 98, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GevInitializeImageTransfer", 0, 0, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 99, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GevInitializeImageTransfer", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -4770,7 +4806,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevInitializeImageTransfer", 0);
 
-  /* "pygigev.pyx":99
+  /* "pygigev.pyx":100
  * 
  * 	def GevInitializeImageTransfer(self, int numImgBuffers=8):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -4779,14 +4815,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":100
+  /* "pygigev.pyx":101
  * 	def GevInitializeImageTransfer(self, int numImgBuffers=8):
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		imgParams = self.GevGetImageParameters()             # <<<<<<<<<<<<<<
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \
  * 								imgParams['width'] * imgParams['height']
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GevGetImageParameters); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 100, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GevGetImageParameters); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 101, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_3 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -4800,24 +4836,24 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
   }
   __pyx_t_1 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 100, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 101, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_v_imgParams = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "pygigev.pyx":101
+  /* "pygigev.pyx":102
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		imgParams = self.GevGetImageParameters()
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \             # <<<<<<<<<<<<<<
  * 								imgParams['width'] * imgParams['height']
  * 
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GetPixelSizeInBytes); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 101, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_GetPixelSizeInBytes); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 102, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_pixelFormat); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 101, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_pixelFormat); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 102, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_GetItemInt(__pyx_t_3, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 101, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_GetItemInt(__pyx_t_3, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 102, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_t_3 = NULL;
@@ -4833,68 +4869,68 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
   __pyx_t_1 = (__pyx_t_3) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_3, __pyx_t_4) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_4);
   __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 101, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 102, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pygigev.pyx":102
+  /* "pygigev.pyx":103
  * 		imgParams = self.GevGetImageParameters()
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \
  * 								imgParams['width'] * imgParams['height']             # <<<<<<<<<<<<<<
  * 
  * 		# create variable to hold a image buffer
  */
-  __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_width); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 102, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_width); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 103, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
 
-  /* "pygigev.pyx":101
+  /* "pygigev.pyx":102
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		imgParams = self.GevGetImageParameters()
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \             # <<<<<<<<<<<<<<
  * 								imgParams['width'] * imgParams['height']
  * 
  */
-  __pyx_t_4 = PyNumber_Multiply(__pyx_t_1, __pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 101, __pyx_L1_error)
+  __pyx_t_4 = PyNumber_Multiply(__pyx_t_1, __pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 102, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pygigev.pyx":102
+  /* "pygigev.pyx":103
  * 		imgParams = self.GevGetImageParameters()
  * 		cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \
  * 								imgParams['width'] * imgParams['height']             # <<<<<<<<<<<<<<
  * 
  * 		# create variable to hold a image buffer
  */
-  __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_height); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 102, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Dict_GetItem(__pyx_v_imgParams, __pyx_n_s_height); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 103, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = PyNumber_Multiply(__pyx_t_4, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 102, __pyx_L1_error)
+  __pyx_t_1 = PyNumber_Multiply(__pyx_t_4, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 103, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_5 = __Pyx_PyInt_As_unsigned_long(__pyx_t_1); if (unlikely((__pyx_t_5 == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 102, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyInt_As_unsigned_long(__pyx_t_1); if (unlikely((__pyx_t_5 == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 103, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_size = __pyx_t_5;
 
-  /* "pygigev.pyx":105
+  /* "pygigev.pyx":106
  * 
  * 		# create variable to hold a image buffer
  * 		self.buffers = np.empty(shape=[numImgBuffers,size], dtype=np.uint8, order="C")             # <<<<<<<<<<<<<<
  * 
  * 		# create helper array to store image array pointers
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_empty); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_empty); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_numImgBuffers); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_numImgBuffers); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_3 = __Pyx_PyInt_From_unsigned_long(__pyx_v_size); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_unsigned_long(__pyx_v_size); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_6 = PyList_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __pyx_t_6 = PyList_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
   __Pyx_GIVEREF(__pyx_t_4);
   PyList_SET_ITEM(__pyx_t_6, 0, __pyx_t_4);
@@ -4902,28 +4938,28 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
   PyList_SET_ITEM(__pyx_t_6, 1, __pyx_t_3);
   __pyx_t_4 = 0;
   __pyx_t_3 = 0;
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_shape, __pyx_t_6) < 0) __PYX_ERR(0, 105, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_shape, __pyx_t_6) < 0) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_uint8); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_uint8); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, __pyx_t_3) < 0) __PYX_ERR(0, 105, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, __pyx_t_3) < 0) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_order, __pyx_n_s_C) < 0) __PYX_ERR(0, 105, __pyx_L1_error)
-  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_empty_tuple, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 105, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_order, __pyx_n_s_C) < 0) __PYX_ERR(0, 106, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_empty_tuple, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_7 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_nn___pyx_t_4decl_UINT8(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_7.memview)) __PYX_ERR(0, 105, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_nn___pyx_t_4decl_UINT8(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_7.memview)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __PYX_XDEC_MEMVIEW(&__pyx_v_self->buffers, 0);
   __pyx_v_self->buffers = __pyx_t_7;
   __pyx_t_7.memview = NULL;
   __pyx_t_7.data = NULL;
 
-  /* "pygigev.pyx":108
+  /* "pygigev.pyx":109
  * 
  * 		# create helper array to store image array pointers
  * 		self.buffers_ptr = <decl.UINT8**>malloc(numImgBuffers * sizeof(decl.UINT8*))             # <<<<<<<<<<<<<<
@@ -4932,7 +4968,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
  */
   __pyx_v_self->buffers_ptr = ((__pyx_t_4decl_UINT8 **)malloc((__pyx_v_numImgBuffers * (sizeof(__pyx_t_4decl_UINT8 *)))));
 
-  /* "pygigev.pyx":111
+  /* "pygigev.pyx":112
  * 
  * 		# loop through buffer elements to get addresses to store in helper array
  * 		if not self.buffers_ptr: raise MemoryError             # <<<<<<<<<<<<<<
@@ -4941,10 +4977,10 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
  */
   __pyx_t_8 = ((!(__pyx_v_self->buffers_ptr != 0)) != 0);
   if (unlikely(__pyx_t_8)) {
-    PyErr_NoMemory(); __PYX_ERR(0, 111, __pyx_L1_error)
+    PyErr_NoMemory(); __PYX_ERR(0, 112, __pyx_L1_error)
   }
 
-  /* "pygigev.pyx":112
+  /* "pygigev.pyx":113
  * 		# loop through buffer elements to get addresses to store in helper array
  * 		if not self.buffers_ptr: raise MemoryError
  * 		try:             # <<<<<<<<<<<<<<
@@ -4960,7 +4996,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
     __Pyx_XGOTREF(__pyx_t_11);
     /*try:*/ {
 
-      /* "pygigev.pyx":113
+      /* "pygigev.pyx":114
  * 		if not self.buffers_ptr: raise MemoryError
  * 		try:
  * 			for i in range(numImgBuffers):             # <<<<<<<<<<<<<<
@@ -4972,14 +5008,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
       for (__pyx_t_14 = 0; __pyx_t_14 < __pyx_t_13; __pyx_t_14+=1) {
         __pyx_v_i = __pyx_t_14;
 
-        /* "pygigev.pyx":114
+        /* "pygigev.pyx":115
  * 		try:
  * 			for i in range(numImgBuffers):
  * 				self.buffers_ptr[i] = &self.buffers[i,0]             # <<<<<<<<<<<<<<
  * 
  * 			exitcode = decl.GevInitializeImageTransfer(self.handle, numImgBuffers, self.buffers_ptr)
  */
-        if (unlikely(!__pyx_v_self->buffers.memview)) {PyErr_SetString(PyExc_AttributeError,"Memoryview is not initialized");__PYX_ERR(0, 114, __pyx_L4_error)}
+        if (unlikely(!__pyx_v_self->buffers.memview)) {PyErr_SetString(PyExc_AttributeError,"Memoryview is not initialized");__PYX_ERR(0, 115, __pyx_L4_error)}
         __pyx_t_15 = __pyx_v_i;
         __pyx_t_16 = 0;
         __pyx_t_17 = -1;
@@ -4993,12 +5029,12 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
         } else if (unlikely(__pyx_t_16 >= __pyx_v_self->buffers.shape[1])) __pyx_t_17 = 1;
         if (unlikely(__pyx_t_17 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_17);
-          __PYX_ERR(0, 114, __pyx_L4_error)
+          __PYX_ERR(0, 115, __pyx_L4_error)
         }
         (__pyx_v_self->buffers_ptr[__pyx_v_i]) = (&(*((__pyx_t_4decl_UINT8 *) ( /* dim=1 */ ((char *) (((__pyx_t_4decl_UINT8 *) ( /* dim=0 */ (__pyx_v_self->buffers.data + __pyx_t_15 * __pyx_v_self->buffers.strides[0]) )) + __pyx_t_16)) ))));
       }
 
-      /* "pygigev.pyx":116
+      /* "pygigev.pyx":117
  * 				self.buffers_ptr[i] = &self.buffers[i,0]
  * 
  * 			exitcode = decl.GevInitializeImageTransfer(self.handle, numImgBuffers, self.buffers_ptr)             # <<<<<<<<<<<<<<
@@ -5007,7 +5043,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
  */
       __pyx_v_exitcode = GevInitializeImageTransfer(__pyx_v_self->handle, __pyx_v_numImgBuffers, __pyx_v_self->buffers_ptr);
 
-      /* "pygigev.pyx":112
+      /* "pygigev.pyx":113
  * 		# loop through buffer elements to get addresses to store in helper array
  * 		if not self.buffers_ptr: raise MemoryError
  * 		try:             # <<<<<<<<<<<<<<
@@ -5027,7 +5063,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
     __PYX_XDEC_MEMVIEW(&__pyx_t_7, 1);
 
-    /* "pygigev.pyx":117
+    /* "pygigev.pyx":118
  * 
  * 			exitcode = decl.GevInitializeImageTransfer(self.handle, numImgBuffers, self.buffers_ptr)
  * 		except:             # <<<<<<<<<<<<<<
@@ -5046,7 +5082,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
     __pyx_L9_try_end:;
   }
 
-  /* "pygigev.pyx":122
+  /* "pygigev.pyx":123
  * 			#free(buffers_ptr)
  * 
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -5054,9 +5090,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
  * 	def GevStartImageTransfer(self, int numFrames):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 122, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 123, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 122, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 123, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_6 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_1))) {
@@ -5071,14 +5107,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
   __pyx_t_3 = (__pyx_t_6) ? __Pyx_PyObject_Call2Args(__pyx_t_1, __pyx_t_6, __pyx_t_2) : __Pyx_PyObject_CallOneArg(__pyx_t_1, __pyx_t_2);
   __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 122, __pyx_L1_error)
+  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 123, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_r = __pyx_t_3;
   __pyx_t_3 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":98
+  /* "pygigev.pyx":99
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevInitializeImageTransfer(self, int numImgBuffers=8):             # <<<<<<<<<<<<<<
@@ -5103,7 +5139,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_20GevInitializeImageTransfer(struct 
   return __pyx_r;
 }
 
-/* "pygigev.pyx":124
+/* "pygigev.pyx":125
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevStartImageTransfer(self, int numFrames):             # <<<<<<<<<<<<<<
@@ -5122,7 +5158,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_23GevStartImageTransfer(PyObject *__
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("GevStartImageTransfer (wrapper)", 0);
   assert(__pyx_arg_numFrames); {
-    __pyx_v_numFrames = __Pyx_PyInt_As_int(__pyx_arg_numFrames); if (unlikely((__pyx_v_numFrames == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 124, __pyx_L3_error)
+    __pyx_v_numFrames = __Pyx_PyInt_As_int(__pyx_arg_numFrames); if (unlikely((__pyx_v_numFrames == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 125, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -5150,7 +5186,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_22GevStartImageTransfer(struct __pyx
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevStartImageTransfer", 0);
 
-  /* "pygigev.pyx":125
+  /* "pygigev.pyx":126
  * 
  * 	def GevStartImageTransfer(self, int numFrames):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -5159,7 +5195,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_22GevStartImageTransfer(struct __pyx
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":126
+  /* "pygigev.pyx":127
  * 	def GevStartImageTransfer(self, int numFrames):
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevStartImageTransfer(self.handle, <decl.UINT32>numFrames)             # <<<<<<<<<<<<<<
@@ -5168,7 +5204,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_22GevStartImageTransfer(struct __pyx
  */
   __pyx_v_exitcode = GevStartImageTransfer(__pyx_v_self->handle, ((__pyx_t_4decl_UINT32)__pyx_v_numFrames));
 
-  /* "pygigev.pyx":127
+  /* "pygigev.pyx":128
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevStartImageTransfer(self.handle, <decl.UINT32>numFrames)
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -5176,9 +5212,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_22GevStartImageTransfer(struct __pyx
  * 	# partially working, can return an image in the buffer, but not properly through API
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 127, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 128, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 127, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 128, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -5193,14 +5229,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_22GevStartImageTransfer(struct __pyx
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 127, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":124
+  /* "pygigev.pyx":125
  * 		return self.handleExitCode(exitcode)
  * 
  * 	def GevStartImageTransfer(self, int numFrames):             # <<<<<<<<<<<<<<
@@ -5222,7 +5258,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_22GevStartImageTransfer(struct __pyx
   return __pyx_r;
 }
 
-/* "pygigev.pyx":130
+/* "pygigev.pyx":131
  * 
  * 	# partially working, can return an image in the buffer, but not properly through API
  * 	def GevGetImageBuffer(self):             # <<<<<<<<<<<<<<
@@ -5256,7 +5292,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_24GevGetImageBuffer(struct __pyx_obj
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevGetImageBuffer", 0);
 
-  /* "pygigev.pyx":131
+  /* "pygigev.pyx":132
  * 	# partially working, can return an image in the buffer, but not properly through API
  * 	def GevGetImageBuffer(self):
  * 		return np.asarray(self.buffers[0,:])             # <<<<<<<<<<<<<<
@@ -5264,12 +5300,12 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_24GevGetImageBuffer(struct __pyx_obj
  * 		# cdef decl.UINT8** _buffer = NULL
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 131, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 132, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_asarray); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 131, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_asarray); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 132, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (unlikely(!__pyx_v_self->buffers.memview)) {PyErr_SetString(PyExc_AttributeError,"Memoryview is not initialized");__PYX_ERR(0, 131, __pyx_L1_error)}
+  if (unlikely(!__pyx_v_self->buffers.memview)) {PyErr_SetString(PyExc_AttributeError,"Memoryview is not initialized");__PYX_ERR(0, 132, __pyx_L1_error)}
   __pyx_t_4.data = __pyx_v_self->buffers.data;
   __pyx_t_4.memview = __pyx_v_self->buffers.memview;
   __PYX_INC_MEMVIEW(&__pyx_t_4, 0);
@@ -5282,7 +5318,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_24GevGetImageBuffer(struct __pyx_obj
         if (unlikely(!__Pyx_is_valid_index(__pyx_tmp_idx, __pyx_tmp_shape))) {
             PyErr_SetString(PyExc_IndexError,
                             "Index out of bounds (axis 0)");
-            __PYX_ERR(0, 131, __pyx_L1_error)
+            __PYX_ERR(0, 132, __pyx_L1_error)
         }
         __pyx_t_4.data += __pyx_tmp_idx * __pyx_tmp_stride;
 }
@@ -5291,7 +5327,7 @@ __pyx_t_4.shape[0] = __pyx_v_self->buffers.shape[1];
 __pyx_t_4.strides[0] = __pyx_v_self->buffers.strides[1];
     __pyx_t_4.suboffsets[0] = -1;
 
-__pyx_t_2 = __pyx_memoryview_fromslice(__pyx_t_4, 1, (PyObject *(*)(char *)) __pyx_memview_get_nn___pyx_t_4decl_UINT8, (int (*)(char *, PyObject *)) __pyx_memview_set_nn___pyx_t_4decl_UINT8, 0);; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 131, __pyx_L1_error)
+__pyx_t_2 = __pyx_memoryview_fromslice(__pyx_t_4, 1, (PyObject *(*)(char *)) __pyx_memview_get_nn___pyx_t_4decl_UINT8, (int (*)(char *, PyObject *)) __pyx_memview_set_nn___pyx_t_4decl_UINT8, 0);; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 132, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __PYX_XDEC_MEMVIEW(&__pyx_t_4, 1);
   __pyx_t_4.memview = NULL;
@@ -5309,14 +5345,14 @@ __pyx_t_2 = __pyx_memoryview_fromslice(__pyx_t_4, 1, (PyObject *(*)(char *)) __p
   __pyx_t_1 = (__pyx_t_5) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_5, __pyx_t_2) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_2);
   __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 131, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 132, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":130
+  /* "pygigev.pyx":131
  * 
  * 	# partially working, can return an image in the buffer, but not properly through API
  * 	def GevGetImageBuffer(self):             # <<<<<<<<<<<<<<
@@ -5339,7 +5375,7 @@ __pyx_t_2 = __pyx_memoryview_fromslice(__pyx_t_4, 1, (PyObject *(*)(char *)) __p
   return __pyx_r;
 }
 
-/* "pygigev.pyx":168
+/* "pygigev.pyx":169
  * 
  * 	# not working, struct returns weird values
  * 	def GevWaitForNextImage(self, decl.UINT32 timeout=1000):             # <<<<<<<<<<<<<<
@@ -5378,7 +5414,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_27GevWaitForNextImage(PyObject *__py
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevWaitForNextImage") < 0)) __PYX_ERR(0, 168, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevWaitForNextImage") < 0)) __PYX_ERR(0, 169, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -5389,14 +5425,14 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_27GevWaitForNextImage(PyObject *__py
       }
     }
     if (values[0]) {
-      __pyx_v_timeout = __Pyx_PyInt_As_unsigned_long(values[0]); if (unlikely((__pyx_v_timeout == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 168, __pyx_L3_error)
+      __pyx_v_timeout = __Pyx_PyInt_As_unsigned_long(values[0]); if (unlikely((__pyx_v_timeout == (unsigned long)-1) && PyErr_Occurred())) __PYX_ERR(0, 169, __pyx_L3_error)
     } else {
       __pyx_v_timeout = ((__pyx_t_4decl_UINT32)0x3E8);
     }
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GevWaitForNextImage", 0, 0, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 168, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GevWaitForNextImage", 0, 0, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 169, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GevWaitForNextImage", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -5424,7 +5460,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_26GevWaitForNextImage(struct __pyx_o
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevWaitForNextImage", 0);
 
-  /* "pygigev.pyx":170
+  /* "pygigev.pyx":171
  * 	def GevWaitForNextImage(self, decl.UINT32 timeout=1000):
  * 		cdef decl.GEV_BUFFER_OBJECT* img
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -5433,7 +5469,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_26GevWaitForNextImage(struct __pyx_o
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":171
+  /* "pygigev.pyx":172
  * 		cdef decl.GEV_BUFFER_OBJECT* img
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevWaitForNextImage(self.handle, &img, timeout)             # <<<<<<<<<<<<<<
@@ -5442,7 +5478,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_26GevWaitForNextImage(struct __pyx_o
  */
   __pyx_v_exitcode = GevWaitForNextImage(__pyx_v_self->handle, (&__pyx_v_img), __pyx_v_timeout);
 
-  /* "pygigev.pyx":173
+  /* "pygigev.pyx":174
  * 		exitcode = decl.GevWaitForNextImage(self.handle, &img, timeout)
  * 
  * 		if img is NULL:             # <<<<<<<<<<<<<<
@@ -5452,7 +5488,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_26GevWaitForNextImage(struct __pyx_o
   __pyx_t_1 = ((__pyx_v_img == NULL) != 0);
   if (__pyx_t_1) {
 
-    /* "pygigev.pyx":174
+    /* "pygigev.pyx":175
  * 
  * 		if img is NULL:
  * 			return "NULL"             # <<<<<<<<<<<<<<
@@ -5464,7 +5500,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_26GevWaitForNextImage(struct __pyx_o
     __pyx_r = __pyx_n_s_NULL;
     goto __pyx_L0;
 
-    /* "pygigev.pyx":173
+    /* "pygigev.pyx":174
  * 		exitcode = decl.GevWaitForNextImage(self.handle, &img, timeout)
  * 
  * 		if img is NULL:             # <<<<<<<<<<<<<<
@@ -5473,55 +5509,25 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_26GevWaitForNextImage(struct __pyx_o
  */
   }
 
-  /* "pygigev.pyx":176
+  /* "pygigev.pyx":177
  * 			return "NULL"
  * 
  * 		print "buffer object"             # <<<<<<<<<<<<<<
  * 		print "{0:x}".format(<unsigned int>&img)
  * 		print "{0:x}".format(img.status)
  */
-  if (__Pyx_PrintOne(0, __pyx_kp_s_buffer_object) < 0) __PYX_ERR(0, 176, __pyx_L1_error)
+  if (__Pyx_PrintOne(0, __pyx_kp_s_buffer_object) < 0) __PYX_ERR(0, 177, __pyx_L1_error)
 
-  /* "pygigev.pyx":177
+  /* "pygigev.pyx":178
  * 
  * 		print "buffer object"
  * 		print "{0:x}".format(<unsigned int>&img)             # <<<<<<<<<<<<<<
  * 		print "{0:x}".format(img.status)
  * 		print img.status
  */
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_0_x, __pyx_n_s_format); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 177, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyInt_From_unsigned_int(((unsigned int)(&__pyx_v_img))); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 177, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
-    __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_3);
-    if (likely(__pyx_t_5)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-      __Pyx_INCREF(__pyx_t_5);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_3, function);
-    }
-  }
-  __pyx_t_2 = (__pyx_t_5) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_5, __pyx_t_4) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 177, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 177, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-
-  /* "pygigev.pyx":178
- * 		print "buffer object"
- * 		print "{0:x}".format(<unsigned int>&img)
- * 		print "{0:x}".format(img.status)             # <<<<<<<<<<<<<<
- * 		print img.status
- * 		print img.state
- */
   __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_0_x, __pyx_n_s_format); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 178, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->status); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 178, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_From_unsigned_int(((unsigned int)(&__pyx_v_img))); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 178, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __pyx_t_5 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
@@ -5543,72 +5549,102 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_26GevWaitForNextImage(struct __pyx_o
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "pygigev.pyx":179
+ * 		print "buffer object"
+ * 		print "{0:x}".format(<unsigned int>&img)
+ * 		print "{0:x}".format(img.status)             # <<<<<<<<<<<<<<
+ * 		print img.status
+ * 		print img.state
+ */
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_0_x, __pyx_n_s_format); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 179, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->status); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 179, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_5 = NULL;
+  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
+    __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_3);
+    if (likely(__pyx_t_5)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+      __Pyx_INCREF(__pyx_t_5);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_3, function);
+    }
+  }
+  __pyx_t_2 = (__pyx_t_5) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_5, __pyx_t_4) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 179, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 179, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+
+  /* "pygigev.pyx":180
  * 		print "{0:x}".format(<unsigned int>&img)
  * 		print "{0:x}".format(img.status)
  * 		print img.status             # <<<<<<<<<<<<<<
  * 		print img.state
  * 		print img.w
  */
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->status); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 179, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->status); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 180, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 179, __pyx_L1_error)
+  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 180, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pygigev.pyx":180
+  /* "pygigev.pyx":181
  * 		print "{0:x}".format(img.status)
  * 		print img.status
  * 		print img.state             # <<<<<<<<<<<<<<
  * 		print img.w
  * 		print img.h
  */
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->state); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 180, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->state); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 181, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 180, __pyx_L1_error)
+  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 181, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pygigev.pyx":181
+  /* "pygigev.pyx":182
  * 		print img.status
  * 		print img.state
  * 		print img.w             # <<<<<<<<<<<<<<
  * 		print img.h
  * 
  */
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->w); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 181, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->w); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 182, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 181, __pyx_L1_error)
+  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 182, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pygigev.pyx":182
+  /* "pygigev.pyx":183
  * 		print img.state
  * 		print img.w
  * 		print img.h             # <<<<<<<<<<<<<<
  * 
  * 		print "exitcode: " + str(exitcode)
  */
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->h); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 182, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->h); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 183, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 182, __pyx_L1_error)
+  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 183, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pygigev.pyx":184
+  /* "pygigev.pyx":185
  * 		print img.h
  * 
  * 		print "exitcode: " + str(exitcode)             # <<<<<<<<<<<<<<
  * 
  * 		return str(img.status)
  */
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 184, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 185, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 184, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 185, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = PyNumber_Add(__pyx_kp_s_exitcode, __pyx_t_3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 184, __pyx_L1_error)
+  __pyx_t_2 = PyNumber_Add(__pyx_kp_s_exitcode, __pyx_t_3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 185, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 184, __pyx_L1_error)
+  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) __PYX_ERR(0, 185, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pygigev.pyx":186
+  /* "pygigev.pyx":187
  * 		print "exitcode: " + str(exitcode)
  * 
  * 		return str(img.status)             # <<<<<<<<<<<<<<
@@ -5616,16 +5652,16 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_26GevWaitForNextImage(struct __pyx_o
  * 	# not working
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->status); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 186, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_img->status); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 187, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 186, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 187, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_3;
   __pyx_t_3 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":168
+  /* "pygigev.pyx":169
  * 
  * 	# not working, struct returns weird values
  * 	def GevWaitForNextImage(self, decl.UINT32 timeout=1000):             # <<<<<<<<<<<<<<
@@ -5647,7 +5683,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_26GevWaitForNextImage(struct __pyx_o
   return __pyx_r;
 }
 
-/* "pygigev.pyx":189
+/* "pygigev.pyx":190
  * 
  * 	# not working
  * 	def GevStopImageTransfer(self):             # <<<<<<<<<<<<<<
@@ -5681,7 +5717,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_28GevStopImageTransfer(struct __pyx_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevStopImageTransfer", 0);
 
-  /* "pygigev.pyx":190
+  /* "pygigev.pyx":191
  * 	# not working
  * 	def GevStopImageTransfer(self):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -5690,7 +5726,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_28GevStopImageTransfer(struct __pyx_
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":191
+  /* "pygigev.pyx":192
  * 	def GevStopImageTransfer(self):
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevStopImageTransfer(self.handle)             # <<<<<<<<<<<<<<
@@ -5699,7 +5735,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_28GevStopImageTransfer(struct __pyx_
  */
   __pyx_v_exitcode = GevStopImageTransfer(__pyx_v_self->handle);
 
-  /* "pygigev.pyx":192
+  /* "pygigev.pyx":193
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevStopImageTransfer(self.handle)
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -5707,9 +5743,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_28GevStopImageTransfer(struct __pyx_
  * 	# not working
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 192, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 193, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 192, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 193, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -5724,14 +5760,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_28GevStopImageTransfer(struct __pyx_
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 192, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 193, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":189
+  /* "pygigev.pyx":190
  * 
  * 	# not working
  * 	def GevStopImageTransfer(self):             # <<<<<<<<<<<<<<
@@ -5753,7 +5789,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_28GevStopImageTransfer(struct __pyx_
   return __pyx_r;
 }
 
-/* "pygigev.pyx":195
+/* "pygigev.pyx":196
  * 
  * 	# not working
  * 	def GevAbortImageTransfer(self):             # <<<<<<<<<<<<<<
@@ -5787,7 +5823,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_30GevAbortImageTransfer(struct __pyx
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevAbortImageTransfer", 0);
 
-  /* "pygigev.pyx":196
+  /* "pygigev.pyx":197
  * 	# not working
  * 	def GevAbortImageTransfer(self):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -5796,7 +5832,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_30GevAbortImageTransfer(struct __pyx
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":197
+  /* "pygigev.pyx":198
  * 	def GevAbortImageTransfer(self):
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevAbortImageTransfer(self.handle)             # <<<<<<<<<<<<<<
@@ -5805,7 +5841,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_30GevAbortImageTransfer(struct __pyx
  */
   __pyx_v_exitcode = GevAbortImageTransfer(__pyx_v_self->handle);
 
-  /* "pygigev.pyx":198
+  /* "pygigev.pyx":199
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevAbortImageTransfer(self.handle)
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -5813,9 +5849,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_30GevAbortImageTransfer(struct __pyx
  * 	# havn't tested since previous 2 aren't working
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 198, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 199, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 198, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 199, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -5830,14 +5866,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_30GevAbortImageTransfer(struct __pyx
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 198, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 199, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":195
+  /* "pygigev.pyx":196
  * 
  * 	# not working
  * 	def GevAbortImageTransfer(self):             # <<<<<<<<<<<<<<
@@ -5859,7 +5895,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_30GevAbortImageTransfer(struct __pyx
   return __pyx_r;
 }
 
-/* "pygigev.pyx":201
+/* "pygigev.pyx":202
  * 
  * 	# havn't tested since previous 2 aren't working
  * 	def GevReleaseImageBuffer(self):             # <<<<<<<<<<<<<<
@@ -5893,7 +5929,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_32GevReleaseImageBuffer(struct __pyx
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevReleaseImageBuffer", 0);
 
-  /* "pygigev.pyx":202
+  /* "pygigev.pyx":203
  * 	# havn't tested since previous 2 aren't working
  * 	def GevReleaseImageBuffer(self):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -5902,7 +5938,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_32GevReleaseImageBuffer(struct __pyx
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":203
+  /* "pygigev.pyx":204
  * 	def GevReleaseImageBuffer(self):
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevReleaseImageBuffer(self.handle, &self.buffers_ptr[0])             # <<<<<<<<<<<<<<
@@ -5911,7 +5947,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_32GevReleaseImageBuffer(struct __pyx
  */
   __pyx_v_exitcode = GevReleaseImageBuffer(__pyx_v_self->handle, (&(__pyx_v_self->buffers_ptr[0])));
 
-  /* "pygigev.pyx":204
+  /* "pygigev.pyx":205
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevReleaseImageBuffer(self.handle, &self.buffers_ptr[0])
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
@@ -5919,9 +5955,9 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_32GevReleaseImageBuffer(struct __pyx
  * 	@staticmethod
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 204, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 205, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 204, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 205, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
@@ -5936,14 +5972,14 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_32GevReleaseImageBuffer(struct __pyx
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 204, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 205, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":201
+  /* "pygigev.pyx":202
  * 
  * 	# havn't tested since previous 2 aren't working
  * 	def GevReleaseImageBuffer(self):             # <<<<<<<<<<<<<<
@@ -5965,7 +6001,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_32GevReleaseImageBuffer(struct __pyx
   return __pyx_r;
 }
 
-/* "pygigev.pyx":207
+/* "pygigev.pyx":208
  * 
  * 	@staticmethod
  * 	def GevApiInitialize():             # <<<<<<<<<<<<<<
@@ -5999,7 +6035,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_34GevApiInitialize(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevApiInitialize", 0);
 
-  /* "pygigev.pyx":208
+  /* "pygigev.pyx":209
  * 	@staticmethod
  * 	def GevApiInitialize():
  * 		return decl.GevApiInitialize()             # <<<<<<<<<<<<<<
@@ -6007,13 +6043,13 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_34GevApiInitialize(void) {
  * 	@staticmethod
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_int(GevApiInitialize()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 208, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(GevApiInitialize()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 209, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":207
+  /* "pygigev.pyx":208
  * 
  * 	@staticmethod
  * 	def GevApiInitialize():             # <<<<<<<<<<<<<<
@@ -6032,7 +6068,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_34GevApiInitialize(void) {
   return __pyx_r;
 }
 
-/* "pygigev.pyx":211
+/* "pygigev.pyx":212
  * 
  * 	@staticmethod
  * 	def GevApiUninitialize():             # <<<<<<<<<<<<<<
@@ -6066,7 +6102,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_36GevApiUninitialize(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevApiUninitialize", 0);
 
-  /* "pygigev.pyx":212
+  /* "pygigev.pyx":213
  * 	@staticmethod
  * 	def GevApiUninitialize():
  * 		return decl.GevApiUninitialize()             # <<<<<<<<<<<<<<
@@ -6074,13 +6110,13 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_36GevApiUninitialize(void) {
  * 	@staticmethod
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_int(GevApiUninitialize()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 212, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(GevApiUninitialize()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 213, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":211
+  /* "pygigev.pyx":212
  * 
  * 	@staticmethod
  * 	def GevApiUninitialize():             # <<<<<<<<<<<<<<
@@ -6099,7 +6135,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_36GevApiUninitialize(void) {
   return __pyx_r;
 }
 
-/* "pygigev.pyx":215
+/* "pygigev.pyx":216
  * 
  * 	@staticmethod
  * 	def GevGetLibraryConfigOptions():             # <<<<<<<<<<<<<<
@@ -6137,7 +6173,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_38GevGetLibraryConfigOptions(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevGetLibraryConfigOptions", 0);
 
-  /* "pygigev.pyx":217
+  /* "pygigev.pyx":218
  * 	def GevGetLibraryConfigOptions():
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS options
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -6146,7 +6182,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_38GevGetLibraryConfigOptions(void) {
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":218
+  /* "pygigev.pyx":219
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS options
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetLibraryConfigOptions(&options)             # <<<<<<<<<<<<<<
@@ -6155,7 +6191,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_38GevGetLibraryConfigOptions(void) {
  */
   __pyx_v_exitcode = GevGetLibraryConfigOptions((&__pyx_v_options));
 
-  /* "pygigev.pyx":219
+  /* "pygigev.pyx":220
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetLibraryConfigOptions(&options)
  * 		return (exitcode, options)             # <<<<<<<<<<<<<<
@@ -6163,11 +6199,11 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_38GevGetLibraryConfigOptions(void) {
  * 	@staticmethod
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 219, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 220, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __pyx_convert__to_py___pyx_t_4decl_GEVLIB_CONFIG_OPTIONS(__pyx_v_options); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 219, __pyx_L1_error)
+  __pyx_t_2 = __pyx_convert__to_py___pyx_t_4decl_GEVLIB_CONFIG_OPTIONS(__pyx_v_options); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 220, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 219, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 220, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_1);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1);
@@ -6179,7 +6215,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_38GevGetLibraryConfigOptions(void) {
   __pyx_t_3 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":215
+  /* "pygigev.pyx":216
  * 
  * 	@staticmethod
  * 	def GevGetLibraryConfigOptions():             # <<<<<<<<<<<<<<
@@ -6200,7 +6236,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_38GevGetLibraryConfigOptions(void) {
   return __pyx_r;
 }
 
-/* "pygigev.pyx":222
+/* "pygigev.pyx":223
  * 
  * 	@staticmethod
  * 	def GevSetLibraryConfigOptions(object options):             # <<<<<<<<<<<<<<
@@ -6238,7 +6274,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_41GevSetLibraryConfigOptions(CYTHON_
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevSetLibraryConfigOptions") < 0)) __PYX_ERR(0, 222, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevSetLibraryConfigOptions") < 0)) __PYX_ERR(0, 223, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -6249,7 +6285,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_41GevSetLibraryConfigOptions(CYTHON_
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GevSetLibraryConfigOptions", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 222, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GevSetLibraryConfigOptions", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 223, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GevSetLibraryConfigOptions", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -6274,17 +6310,17 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_40GevSetLibraryConfigOptions(PyObjec
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevSetLibraryConfigOptions", 0);
 
-  /* "pygigev.pyx":223
+  /* "pygigev.pyx":224
  * 	@staticmethod
  * 	def GevSetLibraryConfigOptions(object options):
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS _options = options             # <<<<<<<<<<<<<<
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetLibraryConfigOptions(&_options)
  */
-  __pyx_t_1 = __pyx_convert__from_py___pyx_t_4decl_GEVLIB_CONFIG_OPTIONS(__pyx_v_options); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 223, __pyx_L1_error)
+  __pyx_t_1 = __pyx_convert__from_py___pyx_t_4decl_GEVLIB_CONFIG_OPTIONS(__pyx_v_options); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 224, __pyx_L1_error)
   __pyx_v__options = __pyx_t_1;
 
-  /* "pygigev.pyx":224
+  /* "pygigev.pyx":225
  * 	def GevSetLibraryConfigOptions(object options):
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS _options = options
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
@@ -6293,7 +6329,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_40GevSetLibraryConfigOptions(PyObjec
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":225
+  /* "pygigev.pyx":226
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS _options = options
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetLibraryConfigOptions(&_options)             # <<<<<<<<<<<<<<
@@ -6302,7 +6338,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_40GevSetLibraryConfigOptions(PyObjec
  */
   __pyx_v_exitcode = GevGetLibraryConfigOptions((&__pyx_v__options));
 
-  /* "pygigev.pyx":226
+  /* "pygigev.pyx":227
  * 		cdef decl.GEV_STATUS exitcode = 0
  * 		exitcode = decl.GevGetLibraryConfigOptions(&_options)
  * 		return exitcode             # <<<<<<<<<<<<<<
@@ -6310,13 +6346,13 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_40GevSetLibraryConfigOptions(PyObjec
  * 	@staticmethod
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 226, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 227, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":222
+  /* "pygigev.pyx":223
  * 
  * 	@staticmethod
  * 	def GevSetLibraryConfigOptions(object options):             # <<<<<<<<<<<<<<
@@ -6335,7 +6371,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_40GevSetLibraryConfigOptions(PyObjec
   return __pyx_r;
 }
 
-/* "pygigev.pyx":229
+/* "pygigev.pyx":230
  * 
  * 	@staticmethod
  * 	def GevDeviceCount():             # <<<<<<<<<<<<<<
@@ -6369,7 +6405,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_42GevDeviceCount(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevDeviceCount", 0);
 
-  /* "pygigev.pyx":230
+  /* "pygigev.pyx":231
  * 	@staticmethod
  * 	def GevDeviceCount():
  * 		return decl.GevDeviceCount()             # <<<<<<<<<<<<<<
@@ -6377,13 +6413,13 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_42GevDeviceCount(void) {
  * 	@staticmethod
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_int(GevDeviceCount()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 230, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(GevDeviceCount()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 231, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":229
+  /* "pygigev.pyx":230
  * 
  * 	@staticmethod
  * 	def GevDeviceCount():             # <<<<<<<<<<<<<<
@@ -6402,7 +6438,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_42GevDeviceCount(void) {
   return __pyx_r;
 }
 
-/* "pygigev.pyx":233
+/* "pygigev.pyx":234
  * 
  * 	@staticmethod
  * 	def GetPixelSizeInBytes(int pixelFormat):             # <<<<<<<<<<<<<<
@@ -6440,18 +6476,18 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_45GetPixelSizeInBytes(CYTHON_UNUSED 
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GetPixelSizeInBytes") < 0)) __PYX_ERR(0, 233, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GetPixelSizeInBytes") < 0)) __PYX_ERR(0, 234, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
     }
-    __pyx_v_pixelFormat = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_pixelFormat == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 233, __pyx_L3_error)
+    __pyx_v_pixelFormat = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_pixelFormat == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 234, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GetPixelSizeInBytes", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 233, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GetPixelSizeInBytes", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 234, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GetPixelSizeInBytes", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -6473,7 +6509,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_44GetPixelSizeInBytes(int __pyx_v_pi
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GetPixelSizeInBytes", 0);
 
-  /* "pygigev.pyx":234
+  /* "pygigev.pyx":235
  * 	@staticmethod
  * 	def GetPixelSizeInBytes(int pixelFormat):
  * 		return decl.GetPixelSizeInBytes(pixelFormat)             # <<<<<<<<<<<<<<
@@ -6481,13 +6517,13 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_44GetPixelSizeInBytes(int __pyx_v_pi
  * 	@staticmethod
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_int(GetPixelSizeInBytes(__pyx_v_pixelFormat)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 234, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(GetPixelSizeInBytes(__pyx_v_pixelFormat)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 235, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":233
+  /* "pygigev.pyx":234
  * 
  * 	@staticmethod
  * 	def GetPixelSizeInBytes(int pixelFormat):             # <<<<<<<<<<<<<<
@@ -6506,7 +6542,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_44GetPixelSizeInBytes(int __pyx_v_pi
   return __pyx_r;
 }
 
-/* "pygigev.pyx":237
+/* "pygigev.pyx":238
  * 
  * 	@staticmethod
  * 	def GevGetPixelDepthInBits(int pixelFormat):             # <<<<<<<<<<<<<<
@@ -6544,18 +6580,18 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_47GevGetPixelDepthInBits(CYTHON_UNUS
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevGetPixelDepthInBits") < 0)) __PYX_ERR(0, 237, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevGetPixelDepthInBits") < 0)) __PYX_ERR(0, 238, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
     }
-    __pyx_v_pixelFormat = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_pixelFormat == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 237, __pyx_L3_error)
+    __pyx_v_pixelFormat = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_pixelFormat == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 238, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GevGetPixelDepthInBits", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 237, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GevGetPixelDepthInBits", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 238, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GevGetPixelDepthInBits", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -6577,7 +6613,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_46GevGetPixelDepthInBits(int __pyx_v
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevGetPixelDepthInBits", 0);
 
-  /* "pygigev.pyx":238
+  /* "pygigev.pyx":239
  * 	@staticmethod
  * 	def GevGetPixelDepthInBits(int pixelFormat):
  * 		return decl.GevGetPixelDepthInBits(pixelFormat)             # <<<<<<<<<<<<<<
@@ -6585,13 +6621,13 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_46GevGetPixelDepthInBits(int __pyx_v
  * 	@staticmethod
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(GevGetPixelDepthInBits(__pyx_v_pixelFormat)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 238, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(GevGetPixelDepthInBits(__pyx_v_pixelFormat)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 239, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":237
+  /* "pygigev.pyx":238
  * 
  * 	@staticmethod
  * 	def GevGetPixelDepthInBits(int pixelFormat):             # <<<<<<<<<<<<<<
@@ -6610,7 +6646,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_46GevGetPixelDepthInBits(int __pyx_v
   return __pyx_r;
 }
 
-/* "pygigev.pyx":241
+/* "pygigev.pyx":242
  * 
  * 	@staticmethod
  * 	def handleExitCode(exitcode):             # <<<<<<<<<<<<<<
@@ -6648,7 +6684,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_49handleExitCode(CYTHON_UNUSED PyObj
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "handleExitCode") < 0)) __PYX_ERR(0, 241, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "handleExitCode") < 0)) __PYX_ERR(0, 242, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -6659,7 +6695,7 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_49handleExitCode(CYTHON_UNUSED PyObj
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("handleExitCode", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 241, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("handleExitCode", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 242, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.handleExitCode", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -6684,7 +6720,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_48handleExitCode(PyObject *__pyx_v_e
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("handleExitCode", 0);
 
-  /* "pygigev.pyx":242
+  /* "pygigev.pyx":243
  * 	@staticmethod
  * 	def handleExitCode(exitcode):
  * 		if exitcode is not 0:             # <<<<<<<<<<<<<<
@@ -6695,7 +6731,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_48handleExitCode(PyObject *__pyx_v_e
   __pyx_t_2 = (__pyx_t_1 != 0);
   if (__pyx_t_2) {
 
-    /* "pygigev.pyx":243
+    /* "pygigev.pyx":244
  * 	def handleExitCode(exitcode):
  * 		if exitcode is not 0:
  * 			return "Method returned code " + str(exitcode) + ", please check your camera's manual."             # <<<<<<<<<<<<<<
@@ -6703,19 +6739,19 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_48handleExitCode(PyObject *__pyx_v_e
  * 
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_3 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 243, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_CallOneArg(((PyObject *)(&PyString_Type)), __pyx_v_exitcode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 244, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_4 = PyNumber_Add(__pyx_kp_s_Method_returned_code, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 243, __pyx_L1_error)
+    __pyx_t_4 = PyNumber_Add(__pyx_kp_s_Method_returned_code, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 244, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = PyNumber_Add(__pyx_t_4, __pyx_kp_s_please_check_your_camera_s_manu); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 243, __pyx_L1_error)
+    __pyx_t_3 = PyNumber_Add(__pyx_t_4, __pyx_kp_s_please_check_your_camera_s_manu); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 244, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __pyx_r = __pyx_t_3;
     __pyx_t_3 = 0;
     goto __pyx_L0;
 
-    /* "pygigev.pyx":242
+    /* "pygigev.pyx":243
  * 	@staticmethod
  * 	def handleExitCode(exitcode):
  * 		if exitcode is not 0:             # <<<<<<<<<<<<<<
@@ -6724,7 +6760,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_48handleExitCode(PyObject *__pyx_v_e
  */
   }
 
-  /* "pygigev.pyx":244
+  /* "pygigev.pyx":245
  * 		if exitcode is not 0:
  * 			return "Method returned code " + str(exitcode) + ", please check your camera's manual."
  * 		else: return "OK"             # <<<<<<<<<<<<<<
@@ -6738,7 +6774,7 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_48handleExitCode(PyObject *__pyx_v_e
     goto __pyx_L0;
   }
 
-  /* "pygigev.pyx":241
+  /* "pygigev.pyx":242
  * 
  * 	@staticmethod
  * 	def handleExitCode(exitcode):             # <<<<<<<<<<<<<<
@@ -6758,12 +6794,12 @@ static PyObject *__pyx_pf_7pygigev_7PyGigEV_48handleExitCode(PyObject *__pyx_v_e
   return __pyx_r;
 }
 
-/* "pygigev.pyx":247
+/* "pygigev.pyx":248
  * 
  * 	# ADDED!
- * 	def GevSetFeatureValueAsString(self, feature, value):             # <<<<<<<<<<<<<<
+ * 	def GevSetFeatureValueAsString(self, basestring feature, basestring value):             # <<<<<<<<<<<<<<
  * 		cdef decl.GEV_STATUS exitcode = 0
- * 		cdef bytes py_bytes_f = feature.encode()
+ * 		cdef string c_feature = (<bytes>feature).decode('ascii').encode("utf-8")
  */
 
 /* Python wrapper */
@@ -6800,11 +6836,11 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_51GevSetFeatureValueAsString(PyObjec
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_value)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("GevSetFeatureValueAsString", 1, 2, 2, 1); __PYX_ERR(0, 247, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("GevSetFeatureValueAsString", 1, 2, 2, 1); __PYX_ERR(0, 248, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevSetFeatureValueAsString") < 0)) __PYX_ERR(0, 247, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "GevSetFeatureValueAsString") < 0)) __PYX_ERR(0, 248, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -6812,239 +6848,152 @@ static PyObject *__pyx_pw_7pygigev_7PyGigEV_51GevSetFeatureValueAsString(PyObjec
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
-    __pyx_v_feature = values[0];
-    __pyx_v_value = values[1];
+    __pyx_v_feature = ((PyObject*)values[0]);
+    __pyx_v_value = ((PyObject*)values[1]);
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("GevSetFeatureValueAsString", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 247, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("GevSetFeatureValueAsString", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 248, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pygigev.PyGigEV.GevSetFeatureValueAsString", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_feature), (&PyBaseString_Type), 1, "feature", 1))) __PYX_ERR(0, 248, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_value), (&PyBaseString_Type), 1, "value", 1))) __PYX_ERR(0, 248, __pyx_L1_error)
   __pyx_r = __pyx_pf_7pygigev_7PyGigEV_50GevSetFeatureValueAsString(((struct __pyx_obj_7pygigev_PyGigEV *)__pyx_v_self), __pyx_v_feature, __pyx_v_value);
 
   /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
 static PyObject *__pyx_pf_7pygigev_7PyGigEV_50GevSetFeatureValueAsString(struct __pyx_obj_7pygigev_PyGigEV *__pyx_v_self, PyObject *__pyx_v_feature, PyObject *__pyx_v_value) {
   __pyx_t_4decl_GEV_STATUS __pyx_v_exitcode;
-  PyObject *__pyx_v_py_bytes_f = 0;
-  char *__pyx_v_c_feature;
-  PyObject *__pyx_v_py_bytes_v = 0;
-  char *__pyx_v_c_value;
+  std::string __pyx_v_c_feature;
+  std::string __pyx_v_c_value;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  char *__pyx_t_4;
-  char const *__pyx_t_5;
-  PyObject *__pyx_t_6 = NULL;
-  char const *__pyx_t_7;
+  std::string __pyx_t_3;
+  PyObject *__pyx_t_4 = NULL;
+  PyObject *__pyx_t_5 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("GevSetFeatureValueAsString", 0);
 
-  /* "pygigev.pyx":248
+  /* "pygigev.pyx":249
  * 	# ADDED!
- * 	def GevSetFeatureValueAsString(self, feature, value):
+ * 	def GevSetFeatureValueAsString(self, basestring feature, basestring value):
  * 		cdef decl.GEV_STATUS exitcode = 0             # <<<<<<<<<<<<<<
- * 		cdef bytes py_bytes_f = feature.encode()
- * 		cdef char* c_feature = py_bytes_f
+ * 		cdef string c_feature = (<bytes>feature).decode('ascii').encode("utf-8")
+ * 		cdef string c_value = (<bytes>value).decode('ascii').encode("utf-8")
  */
   __pyx_v_exitcode = 0;
 
-  /* "pygigev.pyx":249
- * 	def GevSetFeatureValueAsString(self, feature, value):
- * 		cdef decl.GEV_STATUS exitcode = 0
- * 		cdef bytes py_bytes_f = feature.encode()             # <<<<<<<<<<<<<<
- * 		cdef char* c_feature = py_bytes_f
- * 		cdef bytes py_bytes_v = value.encode()
- */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_feature, __pyx_n_s_encode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 249, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
-    if (likely(__pyx_t_3)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-      __Pyx_INCREF(__pyx_t_3);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_2, function);
-    }
-  }
-  __pyx_t_1 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 249, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (!(likely(PyBytes_CheckExact(__pyx_t_1))||((__pyx_t_1) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "bytes", Py_TYPE(__pyx_t_1)->tp_name), 0))) __PYX_ERR(0, 249, __pyx_L1_error)
-  __pyx_v_py_bytes_f = ((PyObject*)__pyx_t_1);
-  __pyx_t_1 = 0;
-
   /* "pygigev.pyx":250
+ * 	def GevSetFeatureValueAsString(self, basestring feature, basestring value):
  * 		cdef decl.GEV_STATUS exitcode = 0
- * 		cdef bytes py_bytes_f = feature.encode()
- * 		cdef char* c_feature = py_bytes_f             # <<<<<<<<<<<<<<
- * 		cdef bytes py_bytes_v = value.encode()
- * 		cdef char* c_value = py_bytes_v
- */
-  if (unlikely(__pyx_v_py_bytes_f == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "expected bytes, NoneType found");
-    __PYX_ERR(0, 250, __pyx_L1_error)
-  }
-  __pyx_t_4 = __Pyx_PyBytes_AsWritableString(__pyx_v_py_bytes_f); if (unlikely((!__pyx_t_4) && PyErr_Occurred())) __PYX_ERR(0, 250, __pyx_L1_error)
-  __pyx_v_c_feature = __pyx_t_4;
-
-  /* "pygigev.pyx":251
- * 		cdef bytes py_bytes_f = feature.encode()
- * 		cdef char* c_feature = py_bytes_f
- * 		cdef bytes py_bytes_v = value.encode()             # <<<<<<<<<<<<<<
- * 		cdef char* c_value = py_bytes_v
+ * 		cdef string c_feature = (<bytes>feature).decode('ascii').encode("utf-8")             # <<<<<<<<<<<<<<
+ * 		cdef string c_value = (<bytes>value).decode('ascii').encode("utf-8")
  * 
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_value, __pyx_n_s_encode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 251, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
-    if (likely(__pyx_t_3)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-      __Pyx_INCREF(__pyx_t_3);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_2, function);
-    }
+  if (unlikely(__pyx_v_feature == Py_None)) {
+    PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%.30s'", "decode");
+    __PYX_ERR(0, 250, __pyx_L1_error)
   }
-  __pyx_t_1 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 251, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_decode_bytes(((PyObject*)__pyx_v_feature), 0, PY_SSIZE_T_MAX, NULL, NULL, PyUnicode_DecodeASCII); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 250, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = PyUnicode_AsUTF8String(((PyObject*)__pyx_t_1)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 250, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_3 = __pyx_convert_string_from_py_std__in_string(__pyx_t_2); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 250, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (!(likely(PyBytes_CheckExact(__pyx_t_1))||((__pyx_t_1) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "bytes", Py_TYPE(__pyx_t_1)->tp_name), 0))) __PYX_ERR(0, 251, __pyx_L1_error)
-  __pyx_v_py_bytes_v = ((PyObject*)__pyx_t_1);
-  __pyx_t_1 = 0;
+  __pyx_v_c_feature = __pyx_t_3;
 
-  /* "pygigev.pyx":252
- * 		cdef char* c_feature = py_bytes_f
- * 		cdef bytes py_bytes_v = value.encode()
- * 		cdef char* c_value = py_bytes_v             # <<<<<<<<<<<<<<
+  /* "pygigev.pyx":251
+ * 		cdef decl.GEV_STATUS exitcode = 0
+ * 		cdef string c_feature = (<bytes>feature).decode('ascii').encode("utf-8")
+ * 		cdef string c_value = (<bytes>value).decode('ascii').encode("utf-8")             # <<<<<<<<<<<<<<
  * 
  * 		exitcode = decl.GevSetFeatureValueAsString(&self.handle,c_feature.c_str(),c_value.c_str())
  */
-  if (unlikely(__pyx_v_py_bytes_v == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "expected bytes, NoneType found");
-    __PYX_ERR(0, 252, __pyx_L1_error)
+  if (unlikely(__pyx_v_value == Py_None)) {
+    PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%.30s'", "decode");
+    __PYX_ERR(0, 251, __pyx_L1_error)
   }
-  __pyx_t_4 = __Pyx_PyBytes_AsWritableString(__pyx_v_py_bytes_v); if (unlikely((!__pyx_t_4) && PyErr_Occurred())) __PYX_ERR(0, 252, __pyx_L1_error)
-  __pyx_v_c_value = __pyx_t_4;
+  __pyx_t_2 = __Pyx_decode_bytes(((PyObject*)__pyx_v_value), 0, PY_SSIZE_T_MAX, NULL, NULL, PyUnicode_DecodeASCII); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 251, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_1 = PyUnicode_AsUTF8String(((PyObject*)__pyx_t_2)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 251, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_3 = __pyx_convert_string_from_py_std__in_string(__pyx_t_1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 251, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_v_c_value = __pyx_t_3;
 
-  /* "pygigev.pyx":254
- * 		cdef char* c_value = py_bytes_v
+  /* "pygigev.pyx":253
+ * 		cdef string c_value = (<bytes>value).decode('ascii').encode("utf-8")
  * 
  * 		exitcode = decl.GevSetFeatureValueAsString(&self.handle,c_feature.c_str(),c_value.c_str())             # <<<<<<<<<<<<<<
  * 
  * 		return self.handleExitCode(exitcode)
  */
-  __pyx_t_2 = __Pyx_PyBytes_FromString(__pyx_v_c_feature); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 254, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_c_str); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 254, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
-    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_3);
-    if (likely(__pyx_t_2)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-      __Pyx_INCREF(__pyx_t_2);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_3, function);
-    }
-  }
-  __pyx_t_1 = (__pyx_t_2) ? __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_2) : __Pyx_PyObject_CallNoArg(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 254, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_5 = __Pyx_PyObject_AsString(__pyx_t_1); if (unlikely((!__pyx_t_5) && PyErr_Occurred())) __PYX_ERR(0, 254, __pyx_L1_error)
-  __pyx_t_2 = __Pyx_PyBytes_FromString(__pyx_v_c_value); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 254, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_c_str); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 254, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_6);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_6))) {
-    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_6);
-    if (likely(__pyx_t_2)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_6);
-      __Pyx_INCREF(__pyx_t_2);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_6, function);
-    }
-  }
-  __pyx_t_3 = (__pyx_t_2) ? __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_t_2) : __Pyx_PyObject_CallNoArg(__pyx_t_6);
-  __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 254, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  __pyx_t_7 = __Pyx_PyObject_AsString(__pyx_t_3); if (unlikely((!__pyx_t_7) && PyErr_Occurred())) __PYX_ERR(0, 254, __pyx_L1_error)
-  __pyx_v_exitcode = GevSetFeatureValueAsString((&__pyx_v_self->handle), __pyx_t_5, __pyx_t_7);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_exitcode = GevSetFeatureValueAsString((&__pyx_v_self->handle), __pyx_v_c_feature.c_str(), __pyx_v_c_value.c_str());
 
-  /* "pygigev.pyx":256
+  /* "pygigev.pyx":255
  * 		exitcode = decl.GevSetFeatureValueAsString(&self.handle,c_feature.c_str(),c_value.c_str())
  * 
  * 		return self.handleExitCode(exitcode)             # <<<<<<<<<<<<<<
+ * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 256, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_6 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 256, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_2 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_1))) {
-    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_1);
-    if (likely(__pyx_t_2)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
-      __Pyx_INCREF(__pyx_t_2);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 255, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_exitcode); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 255, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_5 = NULL;
+  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_2);
+    if (likely(__pyx_t_5)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+      __Pyx_INCREF(__pyx_t_5);
       __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_1, function);
+      __Pyx_DECREF_SET(__pyx_t_2, function);
     }
   }
-  __pyx_t_3 = (__pyx_t_2) ? __Pyx_PyObject_Call2Args(__pyx_t_1, __pyx_t_2, __pyx_t_6) : __Pyx_PyObject_CallOneArg(__pyx_t_1, __pyx_t_6);
-  __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 256, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_r = __pyx_t_3;
-  __pyx_t_3 = 0;
+  __pyx_t_1 = (__pyx_t_5) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_5, __pyx_t_4) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 255, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pygigev.pyx":247
+  /* "pygigev.pyx":248
  * 
  * 	# ADDED!
- * 	def GevSetFeatureValueAsString(self, feature, value):             # <<<<<<<<<<<<<<
+ * 	def GevSetFeatureValueAsString(self, basestring feature, basestring value):             # <<<<<<<<<<<<<<
  * 		cdef decl.GEV_STATUS exitcode = 0
- * 		cdef bytes py_bytes_f = feature.encode()
+ * 		cdef string c_feature = (<bytes>feature).decode('ascii').encode("utf-8")
  */
 
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_6);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_5);
   __Pyx_AddTraceback("pygigev.PyGigEV.GevSetFeatureValueAsString", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_py_bytes_f);
-  __Pyx_XDECREF(__pyx_v_py_bytes_v);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
@@ -11814,6 +11763,71 @@ static __pyx_t_4decl_GEVLIB_CONFIG_OPTIONS __pyx_convert__from_py___pyx_t_4decl_
   __Pyx_pretend_to_initialize(&__pyx_r);
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_value);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "string.from_py":13
+ * 
+ * @cname("__pyx_convert_string_from_py_std__in_string")
+ * cdef string __pyx_convert_string_from_py_std__in_string(object o) except *:             # <<<<<<<<<<<<<<
+ *     cdef Py_ssize_t length = 0
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)
+ */
+
+static std::string __pyx_convert_string_from_py_std__in_string(PyObject *__pyx_v_o) {
+  Py_ssize_t __pyx_v_length;
+  char const *__pyx_v_data;
+  std::string __pyx_r;
+  __Pyx_RefNannyDeclarations
+  char const *__pyx_t_1;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__pyx_convert_string_from_py_std__in_string", 0);
+
+  /* "string.from_py":14
+ * @cname("__pyx_convert_string_from_py_std__in_string")
+ * cdef string __pyx_convert_string_from_py_std__in_string(object o) except *:
+ *     cdef Py_ssize_t length = 0             # <<<<<<<<<<<<<<
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)
+ *     return string(data, length)
+ */
+  __pyx_v_length = 0;
+
+  /* "string.from_py":15
+ * cdef string __pyx_convert_string_from_py_std__in_string(object o) except *:
+ *     cdef Py_ssize_t length = 0
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)             # <<<<<<<<<<<<<<
+ *     return string(data, length)
+ * 
+ */
+  __pyx_t_1 = __Pyx_PyObject_AsStringAndSize(__pyx_v_o, (&__pyx_v_length)); if (unlikely(__pyx_t_1 == ((char const *)NULL))) __PYX_ERR(1, 15, __pyx_L1_error)
+  __pyx_v_data = __pyx_t_1;
+
+  /* "string.from_py":16
+ *     cdef Py_ssize_t length = 0
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)
+ *     return string(data, length)             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+  __pyx_r = std::string(__pyx_v_data, __pyx_v_length);
+  goto __pyx_L0;
+
+  /* "string.from_py":13
+ * 
+ * @cname("__pyx_convert_string_from_py_std__in_string")
+ * cdef string __pyx_convert_string_from_py_std__in_string(object o) except *:             # <<<<<<<<<<<<<<
+ *     cdef Py_ssize_t length = 0
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_AddTraceback("string.from_py.__pyx_convert_string_from_py_std__in_string", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_pretend_to_initialize(&__pyx_r);
+  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
@@ -25795,7 +25809,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_buffer_object, __pyx_k_buffer_object, sizeof(__pyx_k_buffer_object), 0, 0, 1, 0},
   {&__pyx_n_s_c, __pyx_k_c, sizeof(__pyx_k_c), 0, 0, 1, 1},
   {&__pyx_n_u_c, __pyx_k_c, sizeof(__pyx_k_c), 0, 1, 0, 1},
-  {&__pyx_n_s_c_str, __pyx_k_c_str, sizeof(__pyx_k_c_str), 0, 0, 1, 1},
   {&__pyx_n_s_cameraListIndex, __pyx_k_cameraListIndex, sizeof(__pyx_k_cameraListIndex), 0, 0, 1, 1},
   {&__pyx_n_s_capabilities, __pyx_k_capabilities, sizeof(__pyx_k_capabilities), 0, 0, 1, 1},
   {&__pyx_n_s_class, __pyx_k_class, sizeof(__pyx_k_class), 0, 0, 1, 1},
@@ -25926,10 +25939,10 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {0, 0, 0, 0, 0, 0, 0}
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_staticmethod = __Pyx_GetBuiltinName(__pyx_n_s_staticmethod); if (!__pyx_builtin_staticmethod) __PYX_ERR(0, 206, __pyx_L1_error)
-  __pyx_builtin_hex = __Pyx_GetBuiltinName(__pyx_n_s_hex); if (!__pyx_builtin_hex) __PYX_ERR(0, 65, __pyx_L1_error)
-  __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(0, 85, __pyx_L1_error)
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 87, __pyx_L1_error)
+  __pyx_builtin_staticmethod = __Pyx_GetBuiltinName(__pyx_n_s_staticmethod); if (!__pyx_builtin_staticmethod) __PYX_ERR(0, 207, __pyx_L1_error)
+  __pyx_builtin_hex = __Pyx_GetBuiltinName(__pyx_n_s_hex); if (!__pyx_builtin_hex) __PYX_ERR(0, 66, __pyx_L1_error)
+  __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(0, 86, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 88, __pyx_L1_error)
   __pyx_builtin_TypeError = __Pyx_GetBuiltinName(__pyx_n_s_TypeError); if (!__pyx_builtin_TypeError) __PYX_ERR(1, 2, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(2, 272, __pyx_L1_error)
   __pyx_builtin_RuntimeError = __Pyx_GetBuiltinName(__pyx_n_s_RuntimeError); if (!__pyx_builtin_RuntimeError) __PYX_ERR(2, 855, __pyx_L1_error)
@@ -26434,92 +26447,92 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__45);
   __Pyx_GIVEREF(__pyx_tuple__45);
 
-  /* "pygigev.pyx":207
+  /* "pygigev.pyx":208
  * 
  * 	@staticmethod
  * 	def GevApiInitialize():             # <<<<<<<<<<<<<<
  * 		return decl.GevApiInitialize()
  * 
  */
-  __pyx_codeobj__46 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevApiInitialize, 207, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__46)) __PYX_ERR(0, 207, __pyx_L1_error)
+  __pyx_codeobj__46 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevApiInitialize, 208, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__46)) __PYX_ERR(0, 208, __pyx_L1_error)
 
-  /* "pygigev.pyx":211
+  /* "pygigev.pyx":212
  * 
  * 	@staticmethod
  * 	def GevApiUninitialize():             # <<<<<<<<<<<<<<
  * 		return decl.GevApiUninitialize()
  * 
  */
-  __pyx_codeobj__47 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevApiUninitialize, 211, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__47)) __PYX_ERR(0, 211, __pyx_L1_error)
+  __pyx_codeobj__47 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevApiUninitialize, 212, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__47)) __PYX_ERR(0, 212, __pyx_L1_error)
 
-  /* "pygigev.pyx":215
+  /* "pygigev.pyx":216
  * 
  * 	@staticmethod
  * 	def GevGetLibraryConfigOptions():             # <<<<<<<<<<<<<<
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS options
  * 		cdef decl.GEV_STATUS exitcode = 0
  */
-  __pyx_tuple__48 = PyTuple_Pack(2, __pyx_n_s_options, __pyx_n_s_exitcode_2); if (unlikely(!__pyx_tuple__48)) __PYX_ERR(0, 215, __pyx_L1_error)
+  __pyx_tuple__48 = PyTuple_Pack(2, __pyx_n_s_options, __pyx_n_s_exitcode_2); if (unlikely(!__pyx_tuple__48)) __PYX_ERR(0, 216, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__48);
   __Pyx_GIVEREF(__pyx_tuple__48);
-  __pyx_codeobj__49 = (PyObject*)__Pyx_PyCode_New(0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__48, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevGetLibraryConfigOptions, 215, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__49)) __PYX_ERR(0, 215, __pyx_L1_error)
+  __pyx_codeobj__49 = (PyObject*)__Pyx_PyCode_New(0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__48, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevGetLibraryConfigOptions, 216, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__49)) __PYX_ERR(0, 216, __pyx_L1_error)
 
-  /* "pygigev.pyx":222
+  /* "pygigev.pyx":223
  * 
  * 	@staticmethod
  * 	def GevSetLibraryConfigOptions(object options):             # <<<<<<<<<<<<<<
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS _options = options
  * 		cdef decl.GEV_STATUS exitcode = 0
  */
-  __pyx_tuple__50 = PyTuple_Pack(3, __pyx_n_s_options, __pyx_n_s_options_2, __pyx_n_s_exitcode_2); if (unlikely(!__pyx_tuple__50)) __PYX_ERR(0, 222, __pyx_L1_error)
+  __pyx_tuple__50 = PyTuple_Pack(3, __pyx_n_s_options, __pyx_n_s_options_2, __pyx_n_s_exitcode_2); if (unlikely(!__pyx_tuple__50)) __PYX_ERR(0, 223, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__50);
   __Pyx_GIVEREF(__pyx_tuple__50);
-  __pyx_codeobj__51 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__50, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevSetLibraryConfigOptions, 222, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__51)) __PYX_ERR(0, 222, __pyx_L1_error)
+  __pyx_codeobj__51 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__50, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevSetLibraryConfigOptions, 223, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__51)) __PYX_ERR(0, 223, __pyx_L1_error)
 
-  /* "pygigev.pyx":229
+  /* "pygigev.pyx":230
  * 
  * 	@staticmethod
  * 	def GevDeviceCount():             # <<<<<<<<<<<<<<
  * 		return decl.GevDeviceCount()
  * 
  */
-  __pyx_codeobj__52 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevDeviceCount, 229, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__52)) __PYX_ERR(0, 229, __pyx_L1_error)
+  __pyx_codeobj__52 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevDeviceCount, 230, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__52)) __PYX_ERR(0, 230, __pyx_L1_error)
 
-  /* "pygigev.pyx":233
+  /* "pygigev.pyx":234
  * 
  * 	@staticmethod
  * 	def GetPixelSizeInBytes(int pixelFormat):             # <<<<<<<<<<<<<<
  * 		return decl.GetPixelSizeInBytes(pixelFormat)
  * 
  */
-  __pyx_tuple__53 = PyTuple_Pack(1, __pyx_n_s_pixelFormat); if (unlikely(!__pyx_tuple__53)) __PYX_ERR(0, 233, __pyx_L1_error)
+  __pyx_tuple__53 = PyTuple_Pack(1, __pyx_n_s_pixelFormat); if (unlikely(!__pyx_tuple__53)) __PYX_ERR(0, 234, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__53);
   __Pyx_GIVEREF(__pyx_tuple__53);
-  __pyx_codeobj__54 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__53, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GetPixelSizeInBytes, 233, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__54)) __PYX_ERR(0, 233, __pyx_L1_error)
+  __pyx_codeobj__54 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__53, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GetPixelSizeInBytes, 234, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__54)) __PYX_ERR(0, 234, __pyx_L1_error)
 
-  /* "pygigev.pyx":237
+  /* "pygigev.pyx":238
  * 
  * 	@staticmethod
  * 	def GevGetPixelDepthInBits(int pixelFormat):             # <<<<<<<<<<<<<<
  * 		return decl.GevGetPixelDepthInBits(pixelFormat)
  * 
  */
-  __pyx_tuple__55 = PyTuple_Pack(1, __pyx_n_s_pixelFormat); if (unlikely(!__pyx_tuple__55)) __PYX_ERR(0, 237, __pyx_L1_error)
+  __pyx_tuple__55 = PyTuple_Pack(1, __pyx_n_s_pixelFormat); if (unlikely(!__pyx_tuple__55)) __PYX_ERR(0, 238, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__55);
   __Pyx_GIVEREF(__pyx_tuple__55);
-  __pyx_codeobj__56 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__55, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevGetPixelDepthInBits, 237, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__56)) __PYX_ERR(0, 237, __pyx_L1_error)
+  __pyx_codeobj__56 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__55, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_GevGetPixelDepthInBits, 238, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__56)) __PYX_ERR(0, 238, __pyx_L1_error)
 
-  /* "pygigev.pyx":241
+  /* "pygigev.pyx":242
  * 
  * 	@staticmethod
  * 	def handleExitCode(exitcode):             # <<<<<<<<<<<<<<
  * 		if exitcode is not 0:
  * 			return "Method returned code " + str(exitcode) + ", please check your camera's manual."
  */
-  __pyx_tuple__57 = PyTuple_Pack(1, __pyx_n_s_exitcode_2); if (unlikely(!__pyx_tuple__57)) __PYX_ERR(0, 241, __pyx_L1_error)
+  __pyx_tuple__57 = PyTuple_Pack(1, __pyx_n_s_exitcode_2); if (unlikely(!__pyx_tuple__57)) __PYX_ERR(0, 242, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__57);
   __Pyx_GIVEREF(__pyx_tuple__57);
-  __pyx_codeobj__58 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__57, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_handleExitCode, 241, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__58)) __PYX_ERR(0, 241, __pyx_L1_error)
+  __pyx_codeobj__58 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__57, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pygigev_pyx, __pyx_n_s_handleExitCode, 242, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__58)) __PYX_ERR(0, 242, __pyx_L1_error)
 
   /* "View.MemoryView":286
  *         return self.name
@@ -26647,15 +26660,15 @@ static int __Pyx_modinit_type_init_code(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__Pyx_modinit_type_init_code", 0);
   /*--- Type init code ---*/
-  if (PyType_Ready(&__pyx_type_7pygigev_PyGigEV) < 0) __PYX_ERR(0, 9, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_7pygigev_PyGigEV) < 0) __PYX_ERR(0, 10, __pyx_L1_error)
   #if PY_VERSION_HEX < 0x030800B1
   __pyx_type_7pygigev_PyGigEV.tp_print = 0;
   #endif
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_7pygigev_PyGigEV.tp_dictoffset && __pyx_type_7pygigev_PyGigEV.tp_getattro == PyObject_GenericGetAttr)) {
     __pyx_type_7pygigev_PyGigEV.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttr(__pyx_m, __pyx_n_s_PyGigEV, (PyObject *)&__pyx_type_7pygigev_PyGigEV) < 0) __PYX_ERR(0, 9, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_7pygigev_PyGigEV) < 0) __PYX_ERR(0, 9, __pyx_L1_error)
+  if (PyObject_SetAttr(__pyx_m, __pyx_n_s_PyGigEV, (PyObject *)&__pyx_type_7pygigev_PyGigEV) < 0) __PYX_ERR(0, 10, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_7pygigev_PyGigEV) < 0) __PYX_ERR(0, 10, __pyx_L1_error)
   __pyx_ptype_7pygigev_PyGigEV = &__pyx_type_7pygigev_PyGigEV;
   __pyx_vtabptr_array = &__pyx_vtable_array;
   __pyx_vtable_array.get_memview = (PyObject *(*)(struct __pyx_array_obj *))__pyx_array_get_memview;
@@ -26985,235 +26998,235 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "pygigev.pyx":207
+  /* "pygigev.pyx":208
  * 
  * 	@staticmethod
  * 	def GevApiInitialize():             # <<<<<<<<<<<<<<
  * 		return decl.GevApiInitialize()
  * 
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_35GevApiInitialize, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 207, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_35GevApiInitialize, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 208, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevApiInitialize, __pyx_t_1) < 0) __PYX_ERR(0, 207, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevApiInitialize, __pyx_t_1) < 0) __PYX_ERR(0, 208, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":206
+  /* "pygigev.pyx":207
  * 		return self.handleExitCode(exitcode)
  * 
  * 	@staticmethod             # <<<<<<<<<<<<<<
  * 	def GevApiInitialize():
  * 		return decl.GevApiInitialize()
  */
-  __Pyx_GetNameInClass(__pyx_t_1, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevApiInitialize); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 207, __pyx_L1_error)
+  __Pyx_GetNameInClass(__pyx_t_1, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevApiInitialize); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 208, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 206, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 207, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevApiInitialize, __pyx_t_2) < 0) __PYX_ERR(0, 207, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevApiInitialize, __pyx_t_2) < 0) __PYX_ERR(0, 208, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":211
+  /* "pygigev.pyx":212
  * 
  * 	@staticmethod
  * 	def GevApiUninitialize():             # <<<<<<<<<<<<<<
  * 		return decl.GevApiUninitialize()
  * 
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_37GevApiUninitialize, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 211, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_37GevApiUninitialize, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 212, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevApiUninitialize, __pyx_t_2) < 0) __PYX_ERR(0, 211, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevApiUninitialize, __pyx_t_2) < 0) __PYX_ERR(0, 212, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":210
+  /* "pygigev.pyx":211
  * 		return decl.GevApiInitialize()
  * 
  * 	@staticmethod             # <<<<<<<<<<<<<<
  * 	def GevApiUninitialize():
  * 		return decl.GevApiUninitialize()
  */
-  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevApiUninitialize); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 211, __pyx_L1_error)
+  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevApiUninitialize); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 212, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 210, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 211, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevApiUninitialize, __pyx_t_1) < 0) __PYX_ERR(0, 211, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevApiUninitialize, __pyx_t_1) < 0) __PYX_ERR(0, 212, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":215
+  /* "pygigev.pyx":216
  * 
  * 	@staticmethod
  * 	def GevGetLibraryConfigOptions():             # <<<<<<<<<<<<<<
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS options
  * 		cdef decl.GEV_STATUS exitcode = 0
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_39GevGetLibraryConfigOptions, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 215, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_39GevGetLibraryConfigOptions, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 216, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevGetLibraryConfigOptions, __pyx_t_1) < 0) __PYX_ERR(0, 215, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevGetLibraryConfigOptions, __pyx_t_1) < 0) __PYX_ERR(0, 216, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":214
+  /* "pygigev.pyx":215
  * 		return decl.GevApiUninitialize()
  * 
  * 	@staticmethod             # <<<<<<<<<<<<<<
  * 	def GevGetLibraryConfigOptions():
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS options
  */
-  __Pyx_GetNameInClass(__pyx_t_1, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevGetLibraryConfigOptions); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 215, __pyx_L1_error)
+  __Pyx_GetNameInClass(__pyx_t_1, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevGetLibraryConfigOptions); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 216, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 214, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 215, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevGetLibraryConfigOptions, __pyx_t_2) < 0) __PYX_ERR(0, 215, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevGetLibraryConfigOptions, __pyx_t_2) < 0) __PYX_ERR(0, 216, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":222
+  /* "pygigev.pyx":223
  * 
  * 	@staticmethod
  * 	def GevSetLibraryConfigOptions(object options):             # <<<<<<<<<<<<<<
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS _options = options
  * 		cdef decl.GEV_STATUS exitcode = 0
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_41GevSetLibraryConfigOptions, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 222, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_41GevSetLibraryConfigOptions, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 223, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevSetLibraryConfigOptions, __pyx_t_2) < 0) __PYX_ERR(0, 222, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevSetLibraryConfigOptions, __pyx_t_2) < 0) __PYX_ERR(0, 223, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":221
+  /* "pygigev.pyx":222
  * 		return (exitcode, options)
  * 
  * 	@staticmethod             # <<<<<<<<<<<<<<
  * 	def GevSetLibraryConfigOptions(object options):
  * 		cdef decl.GEVLIB_CONFIG_OPTIONS _options = options
  */
-  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevSetLibraryConfigOptions); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 222, __pyx_L1_error)
+  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevSetLibraryConfigOptions); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 223, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 221, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 222, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevSetLibraryConfigOptions, __pyx_t_1) < 0) __PYX_ERR(0, 222, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevSetLibraryConfigOptions, __pyx_t_1) < 0) __PYX_ERR(0, 223, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":229
+  /* "pygigev.pyx":230
  * 
  * 	@staticmethod
  * 	def GevDeviceCount():             # <<<<<<<<<<<<<<
  * 		return decl.GevDeviceCount()
  * 
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_43GevDeviceCount, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 229, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_43GevDeviceCount, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 230, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevDeviceCount, __pyx_t_1) < 0) __PYX_ERR(0, 229, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevDeviceCount, __pyx_t_1) < 0) __PYX_ERR(0, 230, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":228
+  /* "pygigev.pyx":229
  * 		return exitcode
  * 
  * 	@staticmethod             # <<<<<<<<<<<<<<
  * 	def GevDeviceCount():
  * 		return decl.GevDeviceCount()
  */
-  __Pyx_GetNameInClass(__pyx_t_1, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevDeviceCount); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 229, __pyx_L1_error)
+  __Pyx_GetNameInClass(__pyx_t_1, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevDeviceCount); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 230, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 228, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 229, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevDeviceCount, __pyx_t_2) < 0) __PYX_ERR(0, 229, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevDeviceCount, __pyx_t_2) < 0) __PYX_ERR(0, 230, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":233
+  /* "pygigev.pyx":234
  * 
  * 	@staticmethod
  * 	def GetPixelSizeInBytes(int pixelFormat):             # <<<<<<<<<<<<<<
  * 		return decl.GetPixelSizeInBytes(pixelFormat)
  * 
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_45GetPixelSizeInBytes, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 233, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_45GetPixelSizeInBytes, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 234, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GetPixelSizeInBytes, __pyx_t_2) < 0) __PYX_ERR(0, 233, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GetPixelSizeInBytes, __pyx_t_2) < 0) __PYX_ERR(0, 234, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":232
+  /* "pygigev.pyx":233
  * 		return decl.GevDeviceCount()
  * 
  * 	@staticmethod             # <<<<<<<<<<<<<<
  * 	def GetPixelSizeInBytes(int pixelFormat):
  * 		return decl.GetPixelSizeInBytes(pixelFormat)
  */
-  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GetPixelSizeInBytes); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 233, __pyx_L1_error)
+  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GetPixelSizeInBytes); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 234, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 232, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 233, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GetPixelSizeInBytes, __pyx_t_1) < 0) __PYX_ERR(0, 233, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GetPixelSizeInBytes, __pyx_t_1) < 0) __PYX_ERR(0, 234, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":237
+  /* "pygigev.pyx":238
  * 
  * 	@staticmethod
  * 	def GevGetPixelDepthInBits(int pixelFormat):             # <<<<<<<<<<<<<<
  * 		return decl.GevGetPixelDepthInBits(pixelFormat)
  * 
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_47GevGetPixelDepthInBits, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 237, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_47GevGetPixelDepthInBits, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 238, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevGetPixelDepthInBits, __pyx_t_1) < 0) __PYX_ERR(0, 237, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevGetPixelDepthInBits, __pyx_t_1) < 0) __PYX_ERR(0, 238, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":236
+  /* "pygigev.pyx":237
  * 		return decl.GetPixelSizeInBytes(pixelFormat)
  * 
  * 	@staticmethod             # <<<<<<<<<<<<<<
  * 	def GevGetPixelDepthInBits(int pixelFormat):
  * 		return decl.GevGetPixelDepthInBits(pixelFormat)
  */
-  __Pyx_GetNameInClass(__pyx_t_1, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevGetPixelDepthInBits); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 237, __pyx_L1_error)
+  __Pyx_GetNameInClass(__pyx_t_1, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_GevGetPixelDepthInBits); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 238, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 236, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 237, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevGetPixelDepthInBits, __pyx_t_2) < 0) __PYX_ERR(0, 237, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_GevGetPixelDepthInBits, __pyx_t_2) < 0) __PYX_ERR(0, 238, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":241
+  /* "pygigev.pyx":242
  * 
  * 	@staticmethod
  * 	def handleExitCode(exitcode):             # <<<<<<<<<<<<<<
  * 		if exitcode is not 0:
  * 			return "Method returned code " + str(exitcode) + ", please check your camera's manual."
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_49handleExitCode, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 241, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_7pygigev_7PyGigEV_49handleExitCode, NULL, __pyx_n_s_pygigev); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 242, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_handleExitCode, __pyx_t_2) < 0) __PYX_ERR(0, 241, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_handleExitCode, __pyx_t_2) < 0) __PYX_ERR(0, 242, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
-  /* "pygigev.pyx":240
+  /* "pygigev.pyx":241
  * 		return decl.GevGetPixelDepthInBits(pixelFormat)
  * 
  * 	@staticmethod             # <<<<<<<<<<<<<<
  * 	def handleExitCode(exitcode):
  * 		if exitcode is not 0:
  */
-  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 241, __pyx_L1_error)
+  __Pyx_GetNameInClass(__pyx_t_2, (PyObject *)__pyx_ptype_7pygigev_PyGigEV, __pyx_n_s_handleExitCode); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 242, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 240, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_staticmethod, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 241, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_handleExitCode, __pyx_t_1) < 0) __PYX_ERR(0, 241, __pyx_L1_error)
+  if (PyDict_SetItem((PyObject *)__pyx_ptype_7pygigev_PyGigEV->tp_dict, __pyx_n_s_handleExitCode, __pyx_t_1) < 0) __PYX_ERR(0, 242, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_ptype_7pygigev_PyGigEV);
 
@@ -28296,6 +28309,54 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
 }
 #endif
 
+/* ArgTypeTest */
+static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact)
+{
+    if (unlikely(!type)) {
+        PyErr_SetString(PyExc_SystemError, "Missing type object");
+        return 0;
+    }
+    else if (exact) {
+        #if PY_MAJOR_VERSION == 2
+        if ((type == &PyBaseString_Type) && likely(__Pyx_PyBaseString_CheckExact(obj))) return 1;
+        #endif
+    }
+    else {
+        if (likely(__Pyx_TypeCheck(obj, type))) return 1;
+    }
+    PyErr_Format(PyExc_TypeError,
+        "Argument '%.200s' has incorrect type (expected %.200s, got %.200s)",
+        name, type->tp_name, Py_TYPE(obj)->tp_name);
+    return 0;
+}
+
+/* decode_c_bytes */
+static CYTHON_INLINE PyObject* __Pyx_decode_c_bytes(
+         const char* cstring, Py_ssize_t length, Py_ssize_t start, Py_ssize_t stop,
+         const char* encoding, const char* errors,
+         PyObject* (*decode_func)(const char *s, Py_ssize_t size, const char *errors)) {
+    if (unlikely((start < 0) | (stop < 0))) {
+        if (start < 0) {
+            start += length;
+            if (start < 0)
+                start = 0;
+        }
+        if (stop < 0)
+            stop += length;
+    }
+    if (stop > length)
+        stop = length;
+    if (unlikely(stop <= start))
+        return __Pyx_NewRef(__pyx_empty_unicode);
+    length = stop - start;
+    cstring += start;
+    if (decode_func) {
+        return decode_func(cstring, length, errors);
+    } else {
+        return PyUnicode_Decode(cstring, length, encoding, errors);
+    }
+}
+
 /* RaiseException */
 #if PY_MAJOR_VERSION < 3
 static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb,
@@ -28583,27 +28644,6 @@ bad:
     Py_XDECREF(local_value);
     Py_XDECREF(local_tb);
     return -1;
-}
-
-/* ArgTypeTest */
-static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact)
-{
-    if (unlikely(!type)) {
-        PyErr_SetString(PyExc_SystemError, "Missing type object");
-        return 0;
-    }
-    else if (exact) {
-        #if PY_MAJOR_VERSION == 2
-        if ((type == &PyBaseString_Type) && likely(__Pyx_PyBaseString_CheckExact(obj))) return 1;
-        #endif
-    }
-    else {
-        if (likely(__Pyx_TypeCheck(obj, type))) return 1;
-    }
-    PyErr_Format(PyExc_TypeError,
-        "Argument '%.200s' has incorrect type (expected %.200s, got %.200s)",
-        name, type->tp_name, Py_TYPE(obj)->tp_name);
-    return 0;
 }
 
 /* BytesEquals */

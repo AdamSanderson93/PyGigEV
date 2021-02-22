@@ -1,14 +1,15 @@
+import numpy
 from distutils.core import setup
 from distutils.extension import Extension
 
-USE_CYTHON = False
+USE_CYTHON = True
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
 extensions = [Extension("pygigev", 
                              ["pygigev" + ext], 
                              language="c",
-                             include_dirs=["/usr/dalsa/GigeV/include/"],
+                             include_dirs=["/usr/dalsa/GigeV/include/", numpy.get_include()],
                              libraries=["GevApi"],
                              )]
 if USE_CYTHON:    
