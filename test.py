@@ -1,4 +1,8 @@
-from pygigev import PyGigEV as gev, GevPixelFormat, color_conversions
+from pygigev import PyGigEV as gev
+
+from pygigev import GevPixelFormat
+from pygigev import color_conversions
+
 import timeit
 import cv2
 

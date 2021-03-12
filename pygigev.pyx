@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import socket
 import struct
+from enum import Enum
 
 cimport numpy as np
 from cython cimport view
@@ -18,75 +19,72 @@ def ip2int(addr):
 def int2ip(addr):
     return socket.inet_ntoa(struct.pack("!I", addr))
 
-
-print(int2ip(0xc0a80164)) # 192.168.1.100
-print(ip2int('10.0.0.1')) # 167772161
-
-cdef enum GevPixelFormat:
-    fmtMono8 = 0x01080001, #/* 8 Bit Monochrome Unsigned */
-    fmtMono8Signed = 0x01080002, #/* 8 Bit Monochrome Signed*/
-    fmtMono10 = 0x01100003, #/* 10 Bit Monochrome Unsigned   */
-    fmtMono10Packed = 0x010C0004, #/* 10 Bit Monochrome Packed     */
-    fmtMono12 = 0x01100005, #/* 12 Bit Monochrome Unsigned   */
-    fmtMono12Packed = 0x010C0006, #/* 12 Bit Monochrome Packed     */
-    fmtMono14 = 0x01100025, #/* 14 Bit Monochrome Unsigned   */
-    fmtMono16 = 0x01100007, #/* 16 Bit Monochrome Unsigned   */
-    fmtBayerGR8 = 0x01080008, #/*  8-bit Bayer GR        */
-    fmtBayerRG8 = 0x01080009, #/*  8-bit Bayer RG        */
-    fmtBayerGB8 = 0x0108000A, #/*  8-bit Bayer GB        */
-    fmtBayerBG8 = 0x0108000B, #/*  8-bit Bayer BG        */
-    fmtBayerGR10 = 0x0110000C, #/* 10-bit Bayer GR        */
-    fmtBayerRG10 = 0x0110000D, #/* 10-bit Bayer RG        */
-    fmtBayerGB10 = 0x0110000E, #/* 10-bit Bayer GB        */
-    fmtBayerBG10 = 0x0110000F, #/* 10-bit Bayer BG        */
-    fmtBayerGR10Packed = 0x010C0026, #/* 10-bit Bayer GR packed */
-    fmtBayerRG10Packed = 0x010C0027, #/* 10-bit Bayer RG packed */
-    fmtBayerGB10Packed = 0x010C0028, #/* 10-bit Bayer GB packed */
-    fmtBayerBG10Packed = 0x010C0029, #/* 10-bit Bayer BG packed */
-    fmtBayerGR12 = 0x01100010, #/* 12-bit Bayer GR        */
-    fmtBayerRG12 = 0x01100011, #/* 12-bit Bayer RG        */
-    fmtBayerGB12 = 0x01100012, #/* 12-bit Bayer GB        */
-    fmtBayerBG12 = 0x01100013, #/* 12-bit Bayer BG        */
-    fmtBayerGR12Packed = 0x010C002A, #/* 12-bit Bayer GR packed */
-    fmtBayerRG12Packed = 0x010C002B, #/* 12-bit Bayer RG packed */
-    fmtBayerGB12Packed = 0x010C002C, #/* 12-bit Bayer GB packed */
-    fmtBayerBG12Packed = 0x010C002D, #/* 12-bit Bayer BG packed */
-    fmtRGB8Packed = 0x02180014, #/* 8 Bit RGB Unsigned in 24bits */
-    fmtBGR8Packed = 0x02180015, #/* 8 Bit BGR Unsigned in 24bits */
-    fmtRGBA8Packed = 0x02200016, #/* 8 Bit RGB Unsigned           */
-    fmtBGRA8Packed = 0x02200017, #/* 8 Bit BGR Unsigned           */
-    fmtRGB10Packed = 0x02300018, #/* 10 Bit RGB Unsigned          */
-    fmtBGR10Packed = 0x02300019, #/* 10 Bit BGR Unsigned          */
-    fmtRGB12Packed = 0x0230001A, #/* 12 Bit RGB Unsigned          */
-    fmtBGR12Packed = 0x0230001B, #/* 12 Bit BGR Unsigned          */
-    fmtRGB14Packed = 0x0230005E, #/* 14 Bit RGB Unsigned          */
-    fmtBGR14Packed = 0x0230004A, #/* 14 Bit BGR Unsigned          */
-    fmtRGB16Packed = 0x02300033, #/* 16 Bit RGB Unsigned          */
-    fmtBGR16Packed = 0x0230004B, #/* 16 Bit BGR Unsigned          */
-    fmtRGBA16Packed= 0x02400064, #/* 16 Bit RGBA Unsigned         */
-    fmtBGRA16Packed= 0x02400051, #/* 16 Bit BGRA Unsigned         */
-    fmtRGB10V1Packed = 0x0220001C, #/* 10 Bit RGB custom V1 (32bits)*/
-    fmtRGB10V2Packed = 0x0220001D, #/* 10 Bit RGB custom V2 (32bits)*/
-    fmtYUV411packed = 0x020C001E, #/* YUV411 (composite color) */
-    fmtYUV422packed = 0x0210001F, #/* YUV422 (composite color) */
-    fmtYUV444packed = 0x02180020, #/* YUV444 (composite color) */
-    fmt_PFNC_YUV422_8 = 0x02100032, #/* YUV 4:2:2 8-bit */
-    fmtRGB8Planar = 0x02180021, #/* RGB8 Planar buffers      */
-    fmtRGB10Planar = 0x02300022, #/* RGB10 Planar buffers     */
-    fmtRGB12Planar = 0x02300023, #/* RGB12 Planar buffers     */
-    fmtRGB16Planar = 0x02300024, #/* RGB16 Planar buffers     */
-    fmt_PFNC_BiColorBGRG8 = 0x021000A6, #/* Bi-color Blue/Green - Red/Green 8-bit */
-    fmt_PFNC_BiColorBGRG10 = 0x022000A9, #/* Bi-color Blue/Green - Red/Green 10-bit unpacked */
-    fmt_PFNC_BiColorBGRG10p = 0x021400AA, #/* Bi-color Blue/Green - Red/Green 10-bit packed */
-    fmt_PFNC_BiColorBGRG12 = 0x022000AD, #/* Bi-color Blue/Green - Red/Green 12-bit unpacked */
-    fmt_PFNC_BiColorBGRG12p = 0x021800AE, #/* Bi-color Blue/Green - Red/Green 12-bit packed */
-    fmt_PFNC_BiColorRGBG8 = 0x021000A5, #/* Bi-color Red/Green - Blue/Green 8-bit */
-    fmt_PFNC_BiColorRGBG10  = 0x022000A7, #/* Bi-color Red/Green - Blue/Green 10-bit unpacked */
-    fmt_PFNC_BiColorRGBG10p = 0x021400A8, #/* Bi-color Red/Green - Blue/Green 10-bit packed */
-    fmt_PFNC_BiColorRGBG12  = 0x022000AB, #/* Bi-color Red/Green - Blue/Green 12-bit unpacked */
+# cdef enum GevPixelFormat:
+class GevPixelFormat(Enum):
+    fmtMono8 = 0x01080001#, #/* 8 Bit Monochrome Unsigned */
+    fmtMono8Signed = 0x01080002#, #/* 8 Bit Monochrome Signed*/
+    fmtMono10 = 0x01100003#, #/* 10 Bit Monochrome Unsigned   */
+    fmtMono10Packed = 0x010C0004#, #/* 10 Bit Monochrome Packed     */
+    fmtMono12 = 0x01100005#, #/* 12 Bit Monochrome Unsigned   */
+    fmtMono12Packed = 0x010C0006#, #/* 12 Bit Monochrome Packed     */
+    fmtMono14 = 0x01100025#, #/* 14 Bit Monochrome Unsigned   */
+    fmtMono16 = 0x01100007#, #/* 16 Bit Monochrome Unsigned   */
+    fmtBayerGR8 = 0x01080008#, #/*  8-bit Bayer GR        */
+    fmtBayerRG8 = 0x01080009#, #/*  8-bit Bayer RG        */
+    fmtBayerGB8 = 0x0108000A#, #/*  8-bit Bayer GB        */
+    fmtBayerBG8 = 0x0108000B#, #/*  8-bit Bayer BG        */
+    fmtBayerGR10 = 0x0110000C#, #/* 10-bit Bayer GR        */
+    fmtBayerRG10 = 0x0110000D#, #/* 10-bit Bayer RG        */
+    fmtBayerGB10 = 0x0110000E#, #/* 10-bit Bayer GB        */
+    fmtBayerBG10 = 0x0110000F#, #/* 10-bit Bayer BG        */
+    fmtBayerGR10Packed = 0x010C0026#, #/* 10-bit Bayer GR packed */
+    fmtBayerRG10Packed = 0x010C0027#, #/* 10-bit Bayer RG packed */
+    fmtBayerGB10Packed = 0x010C0028#, #/* 10-bit Bayer GB packed */
+    fmtBayerBG10Packed = 0x010C0029#, #/* 10-bit Bayer BG packed */
+    fmtBayerGR12 = 0x01100010#, #/* 12-bit Bayer GR        */
+    fmtBayerRG12 = 0x01100011#, #/* 12-bit Bayer RG        */
+    fmtBayerGB12 = 0x01100012#, #/* 12-bit Bayer GB        */
+    fmtBayerBG12 = 0x01100013#, #/* 12-bit Bayer BG        */
+    fmtBayerGR12Packed = 0x010C002A#, #/* 12-bit Bayer GR packed */
+    fmtBayerRG12Packed = 0x010C002B#, #/* 12-bit Bayer RG packed */
+    fmtBayerGB12Packed = 0x010C002C#, #/* 12-bit Bayer GB packed */
+    fmtBayerBG12Packed = 0x010C002D#, #/* 12-bit Bayer BG packed */
+    fmtRGB8Packed = 0x02180014#, #/* 8 Bit RGB Unsigned in 24bits */
+    fmtBGR8Packed = 0x02180015#, #/* 8 Bit BGR Unsigned in 24bits */
+    fmtRGBA8Packed = 0x02200016#, #/* 8 Bit RGB Unsigned           */
+    fmtBGRA8Packed = 0x02200017#, #/* 8 Bit BGR Unsigned           */
+    fmtRGB10Packed = 0x02300018#, #/* 10 Bit RGB Unsigned          */
+    fmtBGR10Packed = 0x02300019#, #/* 10 Bit BGR Unsigned          */
+    fmtRGB12Packed = 0x0230001A#, #/* 12 Bit RGB Unsigned          */
+    fmtBGR12Packed = 0x0230001B#, #/* 12 Bit BGR Unsigned          */
+    fmtRGB14Packed = 0x0230005E#, #/* 14 Bit RGB Unsigned          */
+    fmtBGR14Packed = 0x0230004A#, #/* 14 Bit BGR Unsigned          */
+    fmtRGB16Packed = 0x02300033#, #/* 16 Bit RGB Unsigned          */
+    fmtBGR16Packed = 0x0230004B#, #/* 16 Bit BGR Unsigned          */
+    fmtRGBA16Packed= 0x02400064#, #/* 16 Bit RGBA Unsigned         */
+    fmtBGRA16Packed= 0x02400051#, #/* 16 Bit BGRA Unsigned         */
+    fmtRGB10V1Packed = 0x0220001C#, #/* 10 Bit RGB custom V1 (32bits)*/
+    fmtRGB10V2Packed = 0x0220001D#, #/* 10 Bit RGB custom V2 (32bits)*/
+    fmtYUV411packed = 0x020C001E#, #/* YUV411 (composite color) */
+    fmtYUV422packed = 0x0210001F#, #/* YUV422 (composite color) */
+    fmtYUV444packed = 0x02180020#, #/* YUV444 (composite color) */
+    fmt_PFNC_YUV422_8 = 0x02100032#, #/* YUV 4:2:2 8-bit */
+    fmtRGB8Planar = 0x02180021#, #/* RGB8 Planar buffers      */
+    fmtRGB10Planar = 0x02300022#, #/* RGB10 Planar buffers     */
+    fmtRGB12Planar = 0x02300023#, #/* RGB12 Planar buffers     */
+    fmtRGB16Planar = 0x02300024#, #/* RGB16 Planar buffers     */
+    fmt_PFNC_BiColorBGRG8 = 0x021000A6#, #/* Bi-color Blue/Green - Red/Green 8-bit */
+    fmt_PFNC_BiColorBGRG10 = 0x022000A9#, #/* Bi-color Blue/Green - Red/Green 10-bit unpacked */
+    fmt_PFNC_BiColorBGRG10p = 0x021400AA#, #/* Bi-color Blue/Green - Red/Green 10-bit packed */
+    fmt_PFNC_BiColorBGRG12 = 0x022000AD#, #/* Bi-color Blue/Green - Red/Green 12-bit unpacked */
+    fmt_PFNC_BiColorBGRG12p = 0x021800AE#, #/* Bi-color Blue/Green - Red/Green 12-bit packed */
+    fmt_PFNC_BiColorRGBG8 = 0x021000A5#, #/* Bi-color Red/Green - Blue/Green 8-bit */
+    fmt_PFNC_BiColorRGBG10  = 0x022000A7#, #/* Bi-color Red/Green - Blue/Green 10-bit unpacked */
+    fmt_PFNC_BiColorRGBG10p = 0x021400A8#, #/* Bi-color Red/Green - Blue/Green 10-bit packed */
+    fmt_PFNC_BiColorRGBG12  = 0x022000AB#, #/* Bi-color Red/Green - Blue/Green 12-bit unpacked */
     fmt_PFNC_BiColorRGBG12p = 0x021800AC #/* Bi-color Red/Green - Blue/Green 12-bit packed */
 
-cdef dict color_conversions = {
+color_conversions = {
     GevPixelFormat.fmtMono8: cv2.COLOR_GRAY2BGR,
     GevPixelFormat.fmtBayerGR8: cv2.COLOR_BayerGR2BGR,
     GevPixelFormat.fmtBayerRG8: cv2.COLOR_BayerRG2BGR,
