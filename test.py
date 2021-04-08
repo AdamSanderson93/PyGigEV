@@ -58,6 +58,14 @@ ctx.GevStartImageTransfer(-1)
 
 trying = False
 
+gev_pix_format = params['format'][0]
+
+color_convert = True
+
+if gev_pix_format not in color_conversions:
+    print("Conversion to bgr not supported for this format")
+    color_convert = False
+
 while(True):
     img = ctx.GevWaitForNextImage(1)
     if type(img) is int:
@@ -67,6 +75,11 @@ while(True):
             break
     
     img = img.reshape(height, width) # is there a more efficient way to reshape?
+    
+    # convert to bgr
+    if color_convert:
+        img = cv2.cvtColor(img, color_conversions[gev_pix_format])
+    
     cv2.imshow('pyGigE-V', img)
     key = cv2.waitKey(1) & 0xFF
     if key == ord('q'):
