@@ -16,3 +16,6 @@ A python wrapper for some of the GigE-V Framework API methods.
 4.  Change the USE_CYTHON flag to `False` in the setup.py file
 5.  Build the module using `python setup.py build_ext --inplace`
 6.  test by running `python test.py` example
+
+#### Supported formats
+Due to the use of cython views, and hardcoded values only unsigned 8 bit formats are currently supported. This is planned to be expanded in the future.
