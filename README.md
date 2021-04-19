@@ -6,7 +6,7 @@ A python wrapper for some of the GigE-V Framework API methods.
 #### Installing Python Package from source repo
 1.  Install GigE-V framework 2.02 https://www.teledynedalsa.com/imaging/products/software/linux-gige-v/
 2.  Download this repository locally
-3.  Run `sudo python setup.py install` at the repo's root dir
+3.  Run `sudo pip install .` at the repo's root dir
 4.  Test by running `python test.py` example
 
 #### Disabling Cython Extension 
