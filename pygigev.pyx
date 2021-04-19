@@ -185,6 +185,8 @@ cdef class PyGigEV:
         cdef decl.GEV_STATUS exitcode = 0
         imgParams = self.GevGetImageParameters()
 
+        numImgBuffers += 1
+
         cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \
                                 imgParams['width'] * imgParams['height']
 
@@ -200,11 +202,11 @@ cdef class PyGigEV:
             for i in range(numImgBuffers):
                 self.buffers_ptr[i] = &self.buffers[i,0]
 
-            exitcode = decl.GevInitImageTransfer(self.handle, <decl.GevBufferCyclingMode>bufferCyclingMode, numImgBuffers, &self.buffers_ptr[0])
+            exitcode = decl.GevInitImageTransfer(self.handle, <decl.GevBufferCyclingMode>bufferCyclingMode, numImgBuffers - 1, &self.buffers_ptr[0])
         except:
             pass
 
-        self.buffer_num = numImgBuffers
+        self.buffer_num = numImgBuffers - 1
         self.current_buf = 0
 
         return self.handleExitCode(exitcode)
@@ -212,6 +214,9 @@ cdef class PyGigEV:
     def GevInitializeImageTransfer(self, int numImgBuffers=8):
         cdef decl.GEV_STATUS exitcode = 0
         imgParams = self.GevGetImageParameters()
+
+        numImgBuffers += 1
+
         cdef decl.UINT32 size = self.GetPixelSizeInBytes(imgParams['pixelFormat'][0]) * \
                                 imgParams['width'] * imgParams['height']
 
@@ -227,11 +232,11 @@ cdef class PyGigEV:
             for i in range(numImgBuffers):
                 self.buffers_ptr[i] = &self.buffers[i,0]
 
-            exitcode = decl.GevInitImageTransfer(self.handle, <decl.GevBufferCyclingMode>1, numImgBuffers, self.buffers_ptr)
+            exitcode = decl.GevInitImageTransfer(self.handle, <decl.GevBufferCyclingMode>1, numImgBuffers - 1, self.buffers_ptr)
         except:
             pass
 
-        self.buffer_num = numImgBuffers
+        self.buffer_num = numImgBuffers - 1
         self.current_buf = 0
 
         return self.handleExitCode(exitcode)
@@ -240,6 +245,7 @@ cdef class PyGigEV:
         cdef decl.GEV_STATUS exitcode = 0
         exitcode = decl.GevStartImageTransfer(self.handle, <decl.UINT32>numFrames)
         return self.handleExitCode(exitcode)
+
 
     def GevWaitForNextImage(self, decl.UINT32 timeout=1000):
         cdef int size = self.height * self.width
