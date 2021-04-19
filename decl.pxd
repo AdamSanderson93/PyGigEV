@@ -99,6 +99,7 @@ ctypedef struct GEV_CAMERA_OPTIONS:
     INT32  streamThreadAffinity        #// CPU affinity for streaming thread (marshall/unpack/write to user buffer) - default handling is "-1" 
     INT32  serverThreadAffinity        #// CPU affinity for packet server thread (recv/dispatch) - default handling is "-1"
     UINT32 msgChannel_timeout_ms
+    UINT32 enable_passthru_mode
 
 cdef extern from "gevapi.h":
 
