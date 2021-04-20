@@ -8,7 +8,7 @@ ctypedef stdint.int8_t INT8
 ctypedef stdint.uint8_t UINT8
 ctypedef stdint.int16_t INT16
 ctypedef stdint.uint16_t UINT16
-ctypedef stdint.bint BOOL
+ctypedef bint BOOL
 ctypedef stdint.int32_t INT32
 ctypedef stdint.uint32_t UINT32
 ctypedef stdint.int64_t INT64
