@@ -1,15 +1,18 @@
 import numpy as np
 cimport numpy as np
 from posix.time cimport timeval
+from libc cimport stdint
 
-ctypedef char INT8
-ctypedef unsigned char UINT8
-ctypedef short INT16
-ctypedef unsigned short UINT16
+
+ctypedef int8_t INT8
+ctypedef uint8_t UINT8
+ctypedef int16_t INT16
+ctypedef uint16_t UINT16
 ctypedef bint BOOL
-ctypedef int INT32
-ctypedef unsigned int UINT32
-ctypedef unsigned long UINT64
+ctypedef int32_t INT32
+ctypedef uint32_t UINT32
+ctypedef int64_t INT64
+ctypedef uint64_t UINT64
 
 ctypedef UINT8* PUINT8
 ctypedef UINT32* PUINT32
