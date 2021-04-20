@@ -4,15 +4,15 @@ from posix.time cimport timeval
 from libc cimport stdint
 
 
-ctypedef int8_t INT8
-ctypedef uint8_t UINT8
-ctypedef int16_t INT16
-ctypedef uint16_t UINT16
-ctypedef bint BOOL
-ctypedef int32_t INT32
-ctypedef uint32_t UINT32
-ctypedef int64_t INT64
-ctypedef uint64_t UINT64
+ctypedef stdint.int8_t INT8
+ctypedef stdint.uint8_t UINT8
+ctypedef stdint.int16_t INT16
+ctypedef stdint.uint16_t UINT16
+ctypedef stdint.bint BOOL
+ctypedef stdint.int32_t INT32
+ctypedef stdint.uint32_t UINT32
+ctypedef stdint.int64_t INT64
+ctypedef stdint.uint64_t UINT64
 
 ctypedef UINT8* PUINT8
 ctypedef UINT32* PUINT32
