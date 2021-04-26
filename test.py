@@ -1,10 +1,11 @@
 from pygigev import PyGigEV as gev
 
-from pygigev import GevPixelFormat
 from pygigev import color_conversions
 
 import timeit
 import cv2
+from datetime import datetime
+import os
 
 # create new context to store native camera data
 ctx = gev()
@@ -43,11 +44,9 @@ print(params)
 width = params['width']
 height = params['height'] 
 
-params = ctx.GevGetCameraInterfaceOptions()
-print("Interface Params")
-print(params)
+exposure = 5000
 
-ctx.GevSetFeatureValueAsString("ExposureTime", "5000")
+ctx.GevSetFeatureValueAsString("ExposureTime", str(exposure))
 
 
 # allocate image buffers and prepare for async image transfer to buffer
@@ -58,15 +57,19 @@ ctx.GevStartImageTransfer(-1)
 
 trying = False
 
-gev_pix_format = params['format'][0]
-
+gev_pix_format = params['pixelFormat'][0]
 color_convert = True
 
 if gev_pix_format not in color_conversions:
     print("Conversion to bgr not supported for this format")
     color_convert = False
 
-while(True):
+params = ctx.GevGetCameraInterfaceOptions()
+print("Interface Params")
+print(params)
+
+
+while True:
     img = ctx.GevWaitForNextImage(1)
     if type(img) is int:
         if img == -6:
@@ -85,12 +88,8 @@ while(True):
     if key == ord('q'):
         break
     elif key == ord('s'):
-        if trying:
-            trying = False
-            ctx.GevSetFeatureValueAsString("ExposureTime", "100")
-        else:
-            trying = True
-            ctx.GevSetFeatureValueAsString("ExposureTime", "5000")
+        cv2.imwrite(os.path.join(os.getcwd(),datetime.now().strftime("%m_%d_%Y_%H_%M_%S")+".png"), img)
+
     
 cv2.destroyAllWindows()
 

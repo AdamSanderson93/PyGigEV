@@ -85,13 +85,13 @@ class GevPixelFormat(Enum):
     fmt_PFNC_BiColorRGBG12p = 0x021800AC #/* Bi-color Red/Green - Blue/Green 12-bit packed */
 
 color_conversions = {
-    GevPixelFormat.fmtMono8: cv2.COLOR_GRAY2BGR,
-    GevPixelFormat.fmtBayerGR8: cv2.COLOR_BayerGR2BGR,
-    GevPixelFormat.fmtBayerRG8: cv2.COLOR_BayerRG2BGR,
-    GevPixelFormat.fmtBayerGB8: cv2.COLOR_BayerGB2BGR,
-    GevPixelFormat.fmtBayerBG8: cv2.COLOR_BayerBG2BGR,
-    GevPixelFormat.fmtRGB8Packed: cv2.COLOR_RGB2BGR,
-    GevPixelFormat.fmtBGR8Packed: 0,
+    GevPixelFormat.fmtMono8.value: cv2.COLOR_GRAY2BGR,
+    GevPixelFormat.fmtBayerGR8.value: cv2.COLOR_BayerGR2RGB,
+    GevPixelFormat.fmtBayerRG8.value: cv2.COLOR_BayerRG2RGB,
+    GevPixelFormat.fmtBayerGB8.value: cv2.COLOR_BayerGB2RGB,
+    GevPixelFormat.fmtBayerBG8.value: cv2.COLOR_BayerBG2RGB,
+    GevPixelFormat.fmtRGB8Packed.value: cv2.COLOR_RGB2BGR,
+    GevPixelFormat.fmtBGR8Packed.value: 0,
 }
 
 
