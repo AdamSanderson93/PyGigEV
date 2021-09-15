@@ -94,7 +94,6 @@ color_conversions = {
     GevPixelFormat.fmtBGR8Packed.value: 0,
 }
 
-
 cdef class PyGigEV:
     cdef decl.GEV_CAMERA_INFO[1000] cameras
     cdef decl.GEV_CAMERA_HANDLE handle
@@ -103,12 +102,12 @@ cdef class PyGigEV:
     cdef decl.UINT8 buffer_num
     cdef decl.UINT8 current_buf
     cdef decl.UINT8** buffers_ptr
-    cdef decl.UINT32 width
-    cdef decl.UINT32 height
-    cdef decl.UINT32 pixel_size
-    cdef decl.UINT32 x_offset
-    cdef decl.UINT32 y_offset
-    cdef decl.UINT32 format
+    cdef public decl.UINT32 width
+    cdef public decl.UINT32 height
+    cdef public decl.UINT32 pixel_size
+    cdef public decl.UINT32 x_offset
+    cdef public decl.UINT32 y_offset
+    cdef public decl.UINT32 format
 
     def __cinit__(self):
         self.handle = NULL

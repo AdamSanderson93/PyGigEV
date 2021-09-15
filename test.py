@@ -1,14 +1,17 @@
-from pygigev import PyGigEV as gev
+import pygigev
+# from pygigev import PyGigEV as gev
 
-from pygigev import color_conversions
+import pygigev
 
 import timeit
 import cv2
 from datetime import datetime
 import os
 
+print(pygigev.color_conversions)
+
 # create new context to store native camera data
-ctx = gev()
+ctx = pygigev.PyGigEV()
 
 # print list of available cameras
 print(ctx.GevGetCameraList())
@@ -60,7 +63,7 @@ trying = False
 gev_pix_format = params['pixelFormat'][0]
 color_convert = True
 
-if gev_pix_format not in color_conversions:
+if gev_pix_format not in pygigev.color_conversions:
     print("Conversion to bgr not supported for this format")
     color_convert = False
 
@@ -78,10 +81,10 @@ while True:
             break
     
     img = img.reshape(height, width) # is there a more efficient way to reshape?
-    
+
     # convert to bgr
     if color_convert:
-        img = cv2.cvtColor(img, color_conversions[gev_pix_format])
+        img = cv2.cvtColor(img, pygigev.color_conversions[gev_pix_format])
     
     cv2.imshow('pyGigE-V', img)
     key = cv2.waitKey(1) & 0xFF
